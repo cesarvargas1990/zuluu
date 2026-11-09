@@ -1,0 +1,87 @@
+// ZULU ADMIN — modelo base (fundación multi-tenant).
+// Los módulos M01–M10 se agregan vía cambios SDD (openspec/changes).
+// Regla: toda tabla con datos de un condominio lleva condominio_id + política RLS.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  SUPERADMIN_ZULU
+  ADMINISTRADORA
+  ASISTENTE
+  CONTADORA
+  ASESOR_JURIDICO
+  OPERACIONES
+  CONSEJO
+}
+
+model Condominio {
+  id          String   @id @default(uuid()) @db.Uuid
+  razonSocial String   @map("razon_social")
+  nit         String   @unique
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  membresias Membresia[]
+  auditoria  Auditoria[]
+
+  @@map("condominio")
+}
+
+model Usuario {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  nombre       String
+  passwordHash String?   @map("password_hash")
+  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
+  activo       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  membresias Membresia[]
+
+  @@map("usuario")
+}
+
+/// Vincula un usuario a un condominio con un rol. Permisos finos (área/acción/expediente) llegan con el módulo de autorización.
+model Membresia {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  usuarioId    String     @map("usuario_id") @db.Uuid
+  rol          Rol
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio Condominio @relation(fields: [condominioId], references: [id])
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+
+  @@unique([condominioId, usuarioId, rol])
+  @@index([condominioId])
+  @@map("membresia")
+}
+
+/// Bitácora append-only: el rol de aplicación no puede UPDATE/DELETE (ver migración).
+model Auditoria {
+  id           BigInt   @id @default(autoincrement())
+  condominioId String?  @map("condominio_id") @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  accion       String
+  objetoTipo   String   @map("objeto_tipo")
+  objetoId     String?  @map("objeto_id")
+  antes        Json?
+  despues      Json?
+  ip           String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio Condominio? @relation(fields: [condominioId], references: [id])
+
+  @@index([condominioId, createdAt])
+  @@map("auditoria")
+}

@@ -1,0 +1,33 @@
+# Infraestructura local de desarrollo. No usar en producción.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: zulu
+      POSTGRES_PASSWORD: zulu_dev
+      POSTGRES_DB: zulu_admin
+    ports: ['5433:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zulu -d zulu_admin']
+      interval: 5s
+      retries: 10
+
+  # Almacenamiento de objetos S3-compatible (documentos originales, privados)
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: zulu
+      MINIO_ROOT_PASSWORD: zulu_dev_secret
+    ports: ['9000:9000', '9001:9001']
+    volumes: [miniodata:/data]
+
+  # Captura de correos en desarrollo (http://localhost:8025)
+  mailpit:
+    image: axllent/mailpit:v1.24
+    ports: ['1025:1025', '8025:8025']
+
+volumes:
+  pgdata:
+  miniodata:
