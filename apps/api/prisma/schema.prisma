@@ -12,7 +12,6 @@ datasource db {
 }
 
 enum Rol {
-  SUPERADMIN_ZULU
   ADMINISTRADORA
   ASISTENTE
   CONTADORA
@@ -29,38 +28,50 @@ model Condominio {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  membresias Membresia[]
-  auditoria  Auditoria[]
+  membresias           Membresia[]
+  auditoria            Auditoria[]
+  permisos             Permiso[]
+  accesosExcepcionales AccesoExcepcional[]
 
   @@map("condominio")
 }
 
 model Usuario {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique
-  nombre       String
-  passwordHash String?   @map("password_hash")
-  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
-  activo       Boolean   @default(true)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  nombre            String
+  passwordHash      String?   @map("password_hash")
+  esSuperadmin      Boolean   @default(false) @map("es_superadmin")
+  activo            Boolean   @default(true)
+  intentosFallidos  Int       @default(0) @map("intentos_fallidos")
+  bloqueadoHasta    DateTime? @map("bloqueado_hasta") @db.Timestamptz(3)
+  /// TOTP cifrado AES-256-GCM (iv.tag.datos en base64). Nunca en claro.
+  mfaSecretoCifrado String?   @map("mfa_secreto_cifrado")
+  mfaActivadoEn     DateTime? @map("mfa_activado_en") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  membresias Membresia[]
+  membresias           Membresia[]
+  sesiones             Sesion[]
+  codigosRespaldo      CodigoRespaldo[]
+  tokensRecuperacion   TokenRecuperacion[]
+  accesosExcepcionales AccesoExcepcional[]
 
   @@map("usuario")
 }
 
 /// Vincula un usuario a un condominio con un rol. Permisos finos (área/acción/expediente) llegan con el módulo de autorización.
 model Membresia {
-  id           String     @id @default(uuid()) @db.Uuid
-  condominioId String     @map("condominio_id") @db.Uuid
-  usuarioId    String     @map("usuario_id") @db.Uuid
+  id           String   @id @default(uuid()) @db.Uuid
+  condominioId String   @map("condominio_id") @db.Uuid
+  usuarioId    String   @map("usuario_id") @db.Uuid
   rol          Rol
-  activo       Boolean    @default(true)
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   condominio Condominio @relation(fields: [condominioId], references: [id])
   usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+  permisos   Permiso[]
 
   @@unique([condominioId, usuarioId, rol])
   @@index([condominioId])
@@ -84,4 +95,103 @@ model Auditoria {
 
   @@index([condominioId, createdAt])
   @@map("auditoria")
+}
+
+enum Accion {
+  leer
+  crear
+  editar
+  aprobar
+  exportar
+  eliminar
+}
+
+enum EfectoPermiso {
+  CONCEDER
+  RESTRINGIR
+}
+
+model CodigoRespaldo {
+  id        String    @id @default(uuid()) @db.Uuid
+  usuarioId String    @map("usuario_id") @db.Uuid
+  hash      String
+  usadoEn   DateTime? @map("usado_en") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@map("codigo_respaldo")
+}
+
+/// Sesión de renovación (refresh opaco, solo se guarda su SHA-256). Global, solo módulo auth.
+model Sesion {
+  id             String    @id @default(uuid()) @db.Uuid
+  usuarioId      String    @map("usuario_id") @db.Uuid
+  familiaId      String    @map("familia_id") @db.Uuid
+  refreshHash    String    @unique @map("refresh_hash")
+  mfaVerificado  Boolean   @default(false) @map("mfa_verificado")
+  expiraEn       DateTime  @map("expira_en") @db.Timestamptz(3)
+  revocadaEn     DateTime? @map("revocada_en") @db.Timestamptz(3)
+  reemplazadaPor String?   @map("reemplazada_por") @db.Uuid
+  ip             String?
+  userAgent      String?   @map("user_agent")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([familiaId])
+  @@map("sesion")
+}
+
+model TokenRecuperacion {
+  id        String    @id @default(uuid()) @db.Uuid
+  usuarioId String    @map("usuario_id") @db.Uuid
+  hash      String    @unique
+  expiraEn  DateTime  @map("expira_en") @db.Timestamptz(3)
+  usadoEn   DateTime? @map("usado_en") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@map("token_recuperacion")
+}
+
+/// Concesión o restricción explícita sobre la matriz por defecto del rol.
+model Permiso {
+  id           String        @id @default(uuid()) @db.Uuid
+  condominioId String        @map("condominio_id") @db.Uuid
+  membresiaId  String        @map("membresia_id") @db.Uuid
+  area         String        @db.VarChar(2)
+  accion       Accion
+  expedienteId String?       @map("expediente_id") @db.Uuid
+  efecto       EfectoPermiso
+  creadoPor    String        @map("creado_por") @db.Uuid
+  revocadoEn   DateTime?     @map("revocado_en") @db.Timestamptz(3)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio Condominio @relation(fields: [condominioId], references: [id])
+  membresia  Membresia  @relation(fields: [membresiaId], references: [id])
+
+  @@index([condominioId, membresiaId])
+  @@map("permiso")
+}
+
+/// Acceso temporal y justificado de un superadministrador a datos de un condominio.
+model AccesoExcepcional {
+  id            String    @id @default(uuid()) @db.Uuid
+  condominioId  String    @map("condominio_id") @db.Uuid
+  usuarioId     String    @map("usuario_id") @db.Uuid
+  justificacion String
+  venceEn       DateTime  @map("vence_en") @db.Timestamptz(3)
+  revocadoEn    DateTime? @map("revocado_en") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio Condominio @relation(fields: [condominioId], references: [id])
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+
+  @@index([condominioId, usuarioId])
+  @@map("acceso_excepcional")
 }

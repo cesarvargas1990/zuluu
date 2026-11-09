@@ -1,6 +1,8 @@
-/** Perfiles (§2 de la especificación). Debe coincidir con el enum `Rol` de Prisma. */
+/**
+ * Roles por condominio (§2). Debe coincidir con el enum `Rol` de Prisma.
+ * El superadministrador ZULU no es un rol de condominio: es `usuario.es_superadmin`.
+ */
 export const ROLES = [
-  'SUPERADMIN_ZULU',
   'ADMINISTRADORA',
   'ASISTENTE',
   'CONTADORA',

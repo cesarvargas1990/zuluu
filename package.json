@@ -17,7 +17,8 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @zulu/api prisma:migrate",
-    "db:studio": "pnpm --filter @zulu/api prisma:studio"
+    "db:studio": "pnpm --filter @zulu/api prisma:studio",
+    "db:seed": "pnpm --filter @zulu/api db:seed"
   },
   "devDependencies": {
     "prettier": "^3.9.10",

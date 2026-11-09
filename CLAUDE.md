@@ -14,6 +14,7 @@ Plataforma web para administrar condominios (expedientes, cartera, finanzas, jur
 cp .env.example .env && pnpm install
 pnpm db:up && pnpm db:migrate
 docker compose exec -T postgres psql -U zulu -d zulu_admin < scripts/dev-db-roles.sql   # solo la 1ª vez
+pnpm db:seed                  # datos ficticios: *@demo.test / superadmin@zulu.test, clave SEED_PASSWORD
 pnpm dev                      # api :3000 (/api/v1) + web :5173 (proxy /api)
 pnpm typecheck && pnpm lint && pnpm test
 pnpm --filter @zulu/api test:integration
@@ -25,6 +26,13 @@ pnpm --filter @zulu/api test:integration
 - **Auditoría append-only**, originales inmutables con SHA-256, dinero en `Decimal` y nunca se borra (reversos). Ver skill `zulu-domain`.
 - Dominio, UI y mensajes en **español**; datos de prueba siempre ficticios (nunca datos reales de propietarios).
 - Secretos solo en `.env` (ignorado); nunca en código ni migraciones.
+
+## Autenticación y permisos (ya implementado)
+
+- Guards globales en orden: Throttler → `JwtGuard` → `MfaGuard` → `CondominioGuard` → `PermisoGuard`. **Todo endpoint exige sesión** salvo `@Publico()`.
+- Endpoints de negocio: `@RequierePermiso('<área>', '<acción>')` + header `X-Condominio-Id`; el servicio lee `contexto.actual().condominioId` y usa `prisma.withTenant`.
+- Matriz rol→permisos en `packages/shared/src/permisos.ts` (borrador, validar con ZULU). Superadmin = `usuario.es_superadmin`; datos solo con acceso excepcional (lectura).
+- Auditoría: `AuditoriaService.registrar(tx, evento)` dentro de la misma transacción; nunca incluir secretos.
 
 ## Flujo de trabajo: Spec-Driven Development
 
