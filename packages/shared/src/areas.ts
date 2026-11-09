@@ -13,6 +13,12 @@ export const AREAS = {
 } as const;
 export type AreaCodigo = keyof typeof AREAS;
 
+/**
+ * Códigos en orden 01→10. No usar Object.keys(AREAS): JavaScript ordena primero las
+ * claves numéricas canónicas ("10") y luego el resto ("01"…"09").
+ */
+export const AREA_CODIGOS = Object.keys(AREAS).sort() as AreaCodigo[];
+
 /** Estados de evidencia (§5). "radicado" nunca equivale a "aprobado". */
 export const ESTADOS_EVIDENCIA = [
   'recibido',

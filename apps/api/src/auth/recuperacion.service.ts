@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { ENV, type Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,6 +12,8 @@ const ENLACE_INVALIDO = 'El enlace es inválido o ya venció. Solicite uno nuevo
 
 @Injectable()
 export class RecuperacionService {
+  private readonly logger = new Logger(RecuperacionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly sesiones: SesionesService,
@@ -20,11 +22,18 @@ export class RecuperacionService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  /** Responde igual exista o no el email. También sirve para definir la primera contraseña. */
-  async solicitar(emailEntrada: string, motivo: 'recuperacion' | 'bienvenida' = 'recuperacion') {
+  /**
+   * Responde igual exista o no el email. También sirve para definir la primera contraseña.
+   * Un fallo del correo se registra pero no se propaga (no debe revelar si la cuenta existe).
+   * @returns true si el correo se entregó al servidor SMTP.
+   */
+  async solicitar(
+    emailEntrada: string,
+    motivo: 'recuperacion' | 'bienvenida' = 'recuperacion',
+  ): Promise<boolean> {
     const email = emailEntrada.trim().toLowerCase();
     const usuario = await this.prisma.usuario.findUnique({ where: { email } });
-    if (!usuario?.activo) return;
+    if (!usuario?.activo) return false;
 
     const token = generarTokenOpaco();
     await this.prisma.tokenRecuperacion.create({
@@ -35,22 +44,33 @@ export class RecuperacionService {
       },
     });
     const enlace = `${this.env.WEB_ORIGIN}/restablecer?token=${encodeURIComponent(token)}`;
-    await this.mailer.enviar({
-      para: usuario.email,
-      asunto:
-        motivo === 'bienvenida'
-          ? 'Bienvenido a ZULU ADMIN'
-          : 'Restablecer contraseña de ZULU ADMIN',
-      texto:
-        `Hola ${usuario.nombre}:\n\nPara definir su contraseña abra este enlace (válido 30 minutos, un solo uso):\n${enlace}\n\n` +
-        'Si usted no lo solicitó, ignore este mensaje.',
-    });
+    let enviado = true;
+    try {
+      await this.mailer.enviar({
+        para: usuario.email,
+        asunto:
+          motivo === 'bienvenida'
+            ? 'Bienvenido a ZULU ADMIN'
+            : 'Restablecer contraseña de ZULU ADMIN',
+        texto:
+          `Hola ${usuario.nombre}:\n\nPara definir su contraseña abra este enlace (válido 30 minutos, un solo uso):\n${enlace}\n\n` +
+          'Si usted no lo solicitó, ignore este mensaje.',
+      });
+    } catch (e) {
+      // No propagar: la respuesta debe ser igual exista o no la cuenta.
+      enviado = false;
+      this.logger.error(
+        `No se pudo enviar el correo (${motivo}) al usuario ${usuario.id}: ${String(e)}`,
+      );
+    }
     await this.auditoria.registrarSuelto({
       accion: 'auth.recuperacion_solicitada',
       objetoTipo: 'usuario',
       objetoId: usuario.id,
       actorId: usuario.id,
+      despues: { motivo, correoEnviado: enviado },
     });
+    return enviado;
   }
 
   async restablecer(token: string, password: string) {

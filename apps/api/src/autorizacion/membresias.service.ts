@@ -61,8 +61,10 @@ export class MembresiasService {
       });
       return m;
     });
-    if (nuevoUsuario) await this.recuperacion.solicitar(email, 'bienvenida');
-    return membresia;
+    const correoEnviado = nuevoUsuario
+      ? await this.recuperacion.solicitar(email, 'bienvenida')
+      : null;
+    return { ...membresia, nuevoUsuario, correoEnviado };
   }
 
   async modificar(id: string, cambios: { activo?: boolean; rol?: Rol }) {

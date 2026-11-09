@@ -39,7 +39,9 @@ class PruebaController {
 
 export class MailerFalso extends Mailer {
   enviados: Correo[] = [];
+  fallar = false;
   async enviar(c: Correo) {
+    if (this.fallar) throw new Error('SMTP no disponible');
     this.enviados.push(c);
   }
   tokenDe(email: string) {

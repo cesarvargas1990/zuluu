@@ -166,4 +166,20 @@ describe('Requisito: gestión de membresías y permisos', () => {
     expect(r.status).toBe(201);
     expect(e.mailer.tokenDe(email)).toBeDefined();
   });
+
+  it('si el correo de bienvenida falla, la membresía se crea igual e informa correoEnviado=false', async () => {
+    const email = `sincorreo.${e.sufijo}@prueba.test`;
+    e.mailer.fallar = true;
+    try {
+      const r = await e.http
+        .post('/api/v1/membresias')
+        .set(bearer(admin.token))
+        .set('x-condominio-id', A)
+        .send({ email, nombre: 'Sin Correo', rol: 'OPERACIONES' });
+      expect(r.status).toBe(201);
+      expect(r.body).toMatchObject({ nuevoUsuario: true, correoEnviado: false });
+    } finally {
+      e.mailer.fallar = false;
+    }
+  });
 });

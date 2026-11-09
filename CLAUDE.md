@@ -5,7 +5,8 @@ Plataforma web para administrar condominios (expedientes, cartera, finanzas, jur
 ## Stack
 
 - Monorepo **pnpm** (Node ≥ 22). `apps/api` NestJS 11 + Prisma 6 + PostgreSQL 17 · `apps/web` React + Vite + TS · `packages/shared` tipos y constantes de dominio (roles, áreas, estados).
-- Infra local en `docker-compose.yml`: Postgres (**puerto 5433**), MinIO (S3, 9000/9001), Mailpit (8025).
+- Infra local en `docker-compose.yml`: Postgres (**puerto 5433**), MinIO (S3, 9000/9001), Mailpit (SMTP 1025, bandeja http://localhost:8025).
+- Identidad visual ZULU: verde bosque `#0b2e1a` + techo lima `#8cc63f` / naranja `#f08a24` (tokens en `apps/web/src/index.css`; lima/naranja solo decorativos). Logo vectorial provisional en `apps/web/src/componentes/Logo.tsx`.
 - Pruebas: Vitest (unit en `src/**/*.spec.ts`, integración en `apps/api/test/*.int.spec.ts` contra Postgres real).
 
 ## Comandos
@@ -18,6 +19,7 @@ pnpm db:seed                  # datos ficticios: *@demo.test / superadmin@zulu.t
 pnpm dev                      # api :3000 (/api/v1) + web :5173 (proxy /api)
 pnpm typecheck && pnpm lint && pnpm test
 pnpm --filter @zulu/api test:integration
+docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en marcha (reinicia datos demo)
 ```
 
 ## Reglas no negociables
@@ -33,6 +35,13 @@ pnpm --filter @zulu/api test:integration
 - Endpoints de negocio: `@RequierePermiso('<área>', '<acción>')` + header `X-Condominio-Id`; el servicio lee `contexto.actual().condominioId` y usa `prisma.withTenant`.
 - Matriz rol→permisos en `packages/shared/src/permisos.ts` (borrador, validar con ZULU). Superadmin = `usuario.es_superadmin`; datos solo con acceso excepcional (lectura).
 - Auditoría: `AuditoriaService.registrar(tx, evento)` dentro de la misma transacción; nunca incluir secretos.
+
+## Web (`apps/web`)
+
+- React 19 + React Router 7 + TanStack Query + Tailwind v4. Rutas en `src/rutas.tsx`; sesión en `src/sesion/` (token solo en memoria, renovación con cookie y Web Locks).
+- Llamar al API siempre con `api()` de `src/api/cliente.ts` (agrega token y `X-Condominio-Id`, renueva ante 401). Endpoints donde 401 es una respuesta válida usan `renovarEn401: false`.
+- Componentes accesibles propios en `src/componentes/` (`Campo`, `Boton`, `Alerta`, `Etiqueta`, `DialogoConfirmacion`). Estados siempre con texto, no solo color.
+- Áreas en orden: usar `AREA_CODIGOS` de `@zulu/shared`, nunca `Object.keys(AREAS)`.
 
 ## Flujo de trabajo: Spec-Driven Development
 

@@ -42,3 +42,10 @@ describe('ROLES_CON_MFA', () => {
     expect([...ROLES_CON_MFA].sort()).toEqual(['ADMINISTRADORA', 'ASESOR_JURIDICO', 'CONTADORA']);
   });
 });
+
+describe('AREA_CODIGOS', () => {
+  it('está en orden 01 → 10', async () => {
+    const { AREA_CODIGOS } = await import('./areas');
+    expect(AREA_CODIGOS).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']);
+  });
+});

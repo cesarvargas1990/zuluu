@@ -80,4 +80,19 @@ describe('Requisito: recuperación de contraseña', () => {
     expect(r.status).toBe(400);
     expect(r.body.message).toMatch(/al menos 12 caracteres/);
   });
+
+  it('si el correo falla responde igual (202) y queda auditado sin revelar la cuenta', async () => {
+    const u = await crearUsuario(e, 'rec5');
+    e.mailer.fallar = true;
+    try {
+      const a = await e.http.post('/api/v1/auth/recuperar').send({ email: u.email });
+      const b = await e.http
+        .post('/api/v1/auth/recuperar')
+        .send({ email: `nadie2.${e.sufijo}@prueba.test` });
+      expect(a.status).toBe(202);
+      expect(a.body).toEqual(b.body);
+    } finally {
+      e.mailer.fallar = false;
+    }
+  });
 });

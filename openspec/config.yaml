@@ -5,7 +5,7 @@ context: |
   Requisitos: docs/requirements/especificaciones.md (PDF original en la misma carpeta).
   Tech stack: pnpm monorepo, Node 22, NestJS 11 + Prisma 6 + PostgreSQL 17 (apps/api), React + Vite + TS (apps/web), packages/shared.
   Architecture: monolito modular (un módulo Nest por M01–M10), RLS por condominio_id con rol zulu_app y prisma.withTenant().
-  Testing: Vitest (unit src/**/*.spec.ts; integración apps/api/test/*.int.spec.ts contra Postgres real).
+  Testing: Vitest (API unit + integración contra Postgres; web con Testing Library) y Playwright E2E (apps/web/e2e).
   Style: TypeScript strict, ESLint 9 + typescript-eslint, Prettier; dominio y UI en español.
 
 strict_tdd: true
