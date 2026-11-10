@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router';
 import { authApi } from '@/api/auth';
 import { ErrorApi } from '@/api/cliente';
-import { MarcoAcceso } from '@/componentes/Layout';
+import { MarcoAcceso } from '@/componentes/layout/MarcoAcceso';
 import { Alerta, Boton, Campo } from '@/componentes/ui';
 import { useTitulo } from '@/componentes/useTitulo';
 import { useSesion, useYo } from '@/sesion/SesionProvider';
@@ -63,33 +63,35 @@ export function MfaConfigurar() {
     const texto = `Códigos de respaldo ZULU ADMIN (${yo.email})\nCada código sirve una sola vez.\n\n${resultado.codigos.join('\n')}\n`;
     return (
       <MarcoAcceso titulo="Guarde sus códigos de respaldo">
-        <div className="flex flex-col gap-4">
+        <div className="d-flex flex-column gap-3">
           <Alerta tono="ok">La verificación en dos pasos quedó activa.</Alerta>
-          <p className="text-sm text-texto-suave">
+          <p className="small text-body-secondary mb-0">
             Si pierde su teléfono, podrá entrar con uno de estos códigos. Cada uno sirve una sola
             vez y <strong>no se volverán a mostrar</strong>.
           </p>
-          <ol className="grid grid-cols-2 gap-2 rounded-md bg-fondo p-4 font-mono text-sm">
+          <ol className="row row-cols-2 g-2 list-unstyled bg-body-tertiary rounded p-3 font-monospace small m-0">
             {resultado.codigos.map((c) => (
-              <li key={c}>{c}</li>
+              <li key={c} className="col">
+                {c}
+              </li>
             ))}
           </ol>
-          <div className="flex flex-wrap gap-3">
+          <div className="d-flex flex-wrap gap-2">
             <Boton variante="secundario" onClick={() => void navigator.clipboard?.writeText(texto)}>
               Copiar
             </Boton>
             <a
-              className="inline-flex min-h-11 items-center rounded-md border border-borde px-4 text-sm font-semibold"
+              className="btn btn-outline-secondary"
               href={`data:text/plain;charset=utf-8,${encodeURIComponent(texto)}`}
               download="codigos-respaldo-zulu-admin.txt"
             >
               Descargar
             </a>
           </div>
-          <label className="flex items-start gap-2 text-sm">
+          <label className="d-flex align-items-start gap-2 small">
             <input
               type="checkbox"
-              className="mt-1 size-4"
+              className="form-check-input mt-0 flex-shrink-0"
               checked={guardados}
               onChange={(e) => setGuardados(e.target.checked)}
             />
@@ -105,15 +107,15 @@ export function MfaConfigurar() {
 
   return (
     <MarcoAcceso titulo="Proteja su cuenta">
-      <form onSubmit={confirmar} noValidate className="flex flex-col gap-4">
-        <p className="text-sm text-texto-suave">
+      <form onSubmit={confirmar} noValidate className="d-flex flex-column gap-3">
+        <p className="small text-body-secondary mb-0">
           Su perfil requiere verificación en dos pasos. Escanee el código con una aplicación de
           autenticación (Google Authenticator, Microsoft Authenticator u otra) o escriba la clave
           manualmente.
         </p>
         {error && <Alerta tono="error">{error}</Alerta>}
         {registro ? (
-          <div className="flex flex-col items-center gap-3">
+          <div className="d-flex flex-column align-items-center gap-3">
             {registro.qr && (
               <img
                 src={registro.qr}
@@ -122,15 +124,19 @@ export function MfaConfigurar() {
                 alt="Código QR para la aplicación de autenticación"
               />
             )}
-            <p className="text-sm">
+            <p className="small mb-0">
               Clave:{' '}
-              <code className="rounded bg-fondo px-2 py-1 font-mono break-all">
+              <code className="bg-body-tertiary text-body rounded px-2 py-1 text-break fw-semibold">
                 {registro.secreto}
               </code>
             </p>
           </div>
         ) : (
-          !error && <p role="status">Preparando…</p>
+          !error && (
+            <p role="status" className="text-body-secondary mb-0">
+              Preparando…
+            </p>
+          )
         )}
         <Campo
           etiqueta="Código de 6 dígitos"
@@ -144,7 +150,7 @@ export function MfaConfigurar() {
         <Boton type="submit" cargando={enviando} disabled={codigo.length !== 6 || !registro}>
           Activar verificación
         </Boton>
-        <Boton variante="enlace" className="self-center" onClick={() => void salir()}>
+        <Boton variante="enlace" className="align-self-center" onClick={() => void salir()}>
           Salir
         </Boton>
       </form>

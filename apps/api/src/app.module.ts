@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AdminModule } from './admin/admin.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtGuard } from './auth/jwt.guard';
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module';
     HealthModule,
     AuthModule,
     AutorizacionModule,
+    AdminModule,
   ],
   providers: [
     // Orden de ejecución: límite → identidad → MFA → condominio → permiso. Denegar por defecto.

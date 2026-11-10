@@ -14,7 +14,10 @@ export default async function prepararDatos() {
       `DELETE FROM codigo_respaldo WHERE usuario_id IN (SELECT id FROM usuario WHERE email LIKE '%@demo.test')`,
     );
     await db.query(`UPDATE usuario SET mfa_secreto_cifrado = NULL, mfa_activado_en = NULL, intentos_fallidos = 0, bloqueado_hasta = NULL
-                    WHERE email LIKE '%@demo.test'`);
+                    WHERE email LIKE '%@demo.test' OR email = 'superadmin@zulu.test'`);
+    await db.query(
+      `DELETE FROM codigo_respaldo WHERE usuario_id IN (SELECT id FROM usuario WHERE email = 'superadmin@zulu.test')`,
+    );
     await db.query(
       `UPDATE membresia SET activo = true WHERE usuario_id IN (SELECT id FROM usuario WHERE email LIKE '%@demo.test' AND email NOT LIKE 'e2e-%')`,
     );

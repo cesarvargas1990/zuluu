@@ -1,4 +1,6 @@
-export const BASE_API = '/api/v1';
+// Vite ajusta BASE_URL al prefijo publicado (por ejemplo, /zulu/ en producción).
+// Así, la API permanece dentro del mismo subdirectorio de la aplicación.
+export const BASE_API = `${import.meta.env.BASE_URL}api/v1`;
 
 export interface ErrorCampo {
   campo: string;

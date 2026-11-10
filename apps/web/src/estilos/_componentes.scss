@@ -1,0 +1,300 @@
+// ---------- Base ----------
+:root {
+  --zulu-lima: #{$zulu-lima};
+  --zulu-naranja: #{$zulu-naranja};
+  --zulu-bosque: #{$zulu-bosque};
+  // Semáforo (§7): configurable en el futuro por condominio
+  --zulu-semaforo-urgente-bg: #{$danger};
+  --zulu-semaforo-urgente-fg: #fff;
+  --zulu-semaforo-riesgo-bg: #{$zulu-naranja-suave};
+  --zulu-semaforo-riesgo-fg: #{$zulu-naranja-oscuro};
+  --zulu-semaforo-tramite-bg: #fff4d1;
+  --zulu-semaforo-tramite-fg: #6b4e00;
+  --zulu-semaforo-cerrado-bg: #{$zulu-verde-suave};
+  --zulu-semaforo-cerrado-fg: #{$success};
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.saltar-contenido {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 1080;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border-radius: $border-radius;
+  &:focus {
+    top: 0.5rem;
+  }
+}
+
+.franja-marca {
+  display: flex;
+  height: 4px;
+  > span {
+    flex: 1;
+  }
+  > span:first-child {
+    background: $zulu-lima;
+  }
+  > span:last-child {
+    background: $zulu-naranja;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+// ---------- Dashboard: shell ----------
+.app-shell {
+  min-height: 100dvh;
+}
+
+.sidebar {
+  background: $zulu-bosque;
+  color: rgba(#fff, 0.85);
+  display: flex;
+  flex-direction: column;
+
+  .sidebar-marca {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    min-height: $topbar-alto;
+    color: #fff;
+  }
+
+  .sidebar-seccion {
+    padding: 1rem 1.25rem 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(#fff, 0.55);
+  }
+
+  .sidebar-enlace {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    margin: 0.125rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: $border-radius;
+    color: rgba(#fff, 0.85);
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+
+    .bi {
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    &:hover {
+      background: rgba(#fff, 0.08);
+      color: #fff;
+    }
+    &.active {
+      background: rgba(#fff, 0.12);
+      color: #fff;
+      &::before {
+        content: '';
+        position: absolute;
+        left: -0.75rem;
+        top: 0.5rem;
+        bottom: 0.5rem;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: $zulu-lima;
+      }
+    }
+    &:focus-visible {
+      outline: 2px solid $zulu-lima;
+      outline-offset: 1px;
+    }
+  }
+
+  .sidebar-pie {
+    margin-top: auto;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    color: rgba(#fff, 0.55);
+  }
+}
+
+@include media-breakpoint-up(lg) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: $sidebar-ancho 1fr;
+    transition: grid-template-columns 0.15s ease;
+    &.colapsada {
+      grid-template-columns: $sidebar-ancho-colapsado 1fr;
+      .sidebar-texto,
+      .sidebar-seccion,
+      .sidebar-pie {
+        display: none;
+      }
+      .sidebar-enlace {
+        justify-content: center;
+      }
+      .sidebar-marca {
+        justify-content: center;
+        padding-inline: 0.5rem;
+      }
+    }
+  }
+  .sidebar-fija {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: $topbar-alto;
+  padding: 0.5rem 1.5rem;
+  background: rgba(#fff, 0.92);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid $border-color;
+}
+
+.contenido {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 1.5rem;
+  @include media-breakpoint-up(lg) {
+    padding: 2rem;
+  }
+  &:focus {
+    outline: none;
+  }
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: $zulu-verde-suave;
+  color: $zulu-verde;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+// ---------- Dashboard: componentes ----------
+.kpi {
+  height: 100%;
+  .kpi-icono {
+    display: inline-grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: $border-radius;
+    background: $zulu-verde-suave;
+    color: $zulu-verde;
+    font-size: 1.25rem;
+  }
+  .kpi-valor {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-etiqueta {
+    color: $body-secondary-color;
+    font-size: 0.875rem;
+  }
+}
+
+.semaforo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  &.semaforo-urgente {
+    background: var(--zulu-semaforo-urgente-bg);
+    color: var(--zulu-semaforo-urgente-fg);
+  }
+  &.semaforo-riesgo {
+    background: var(--zulu-semaforo-riesgo-bg);
+    color: var(--zulu-semaforo-riesgo-fg);
+  }
+  &.semaforo-tramite {
+    background: var(--zulu-semaforo-tramite-bg);
+    color: var(--zulu-semaforo-tramite-fg);
+  }
+  &.semaforo-cerrado {
+    background: var(--zulu-semaforo-cerrado-bg);
+    color: var(--zulu-semaforo-cerrado-fg);
+  }
+}
+
+.estado-vacio {
+  text-align: center;
+  padding: 3rem 1rem;
+  .bi {
+    font-size: 2.5rem;
+    color: $secondary;
+  }
+}
+
+.card {
+  box-shadow: $box-shadow-sm;
+}
+
+.table > thead.table-light th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $body-secondary-color;
+}
+
+// ---------- Acceso (sin sesión) ----------
+.marco-acceso {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2.5rem 1rem;
+  background:
+    radial-gradient(circle at 15% 10%, rgba($zulu-lima, 0.18), transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba($zulu-naranja, 0.14), transparent 40%), $zulu-bosque;
+
+  .marco-acceso-tarjeta {
+    width: 100%;
+    max-width: 28rem;
+  }
+  .marco-acceso-logo {
+    color: #fff;
+    width: 11rem;
+    margin: 0 auto 1.5rem;
+    display: block;
+  }
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+// Bootstrap: overflow-x:auto fuerza overflow-y:auto y un desborde de 1 px dibuja una barra vertical.
+.table-responsive {
+  overflow-y: hidden;
+}

@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { authApi } from '@/api/auth';
 import { ErrorApi } from '@/api/cliente';
-import { MarcoAcceso } from '@/componentes/Layout';
+import { MarcoAcceso } from '@/componentes/layout/MarcoAcceso';
 import { Alerta, Boton, Campo } from '@/componentes/ui';
 import { useTitulo } from '@/componentes/useTitulo';
 import { useSesion } from '@/sesion/SesionProvider';
@@ -34,7 +34,7 @@ export function Ingresar() {
 
   return (
     <MarcoAcceso titulo="Ingresar">
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+      <form onSubmit={enviar} noValidate className="d-flex flex-column gap-3">
         {aviso && !error && <Alerta tono="aviso">{aviso}</Alerta>}
         {error && <Alerta tono="error">{error}</Alerta>}
         <Campo
@@ -61,7 +61,7 @@ export function Ingresar() {
         <Boton type="submit" cargando={enviando} disabled={!email || !password}>
           Ingresar
         </Boton>
-        <Link to="/olvide" className="self-center text-sm text-acento underline underline-offset-2">
+        <Link to="/olvide" className="align-self-center small">
           Olvidé mi contraseña
         </Link>
       </form>

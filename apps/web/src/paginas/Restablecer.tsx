@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { authApi } from '@/api/auth';
 import { ErrorApi } from '@/api/cliente';
-import { MarcoAcceso } from '@/componentes/Layout';
+import { MarcoAcceso } from '@/componentes/layout/MarcoAcceso';
 import { Alerta, Boton, Campo } from '@/componentes/ui';
 import { useTitulo } from '@/componentes/useTitulo';
 
@@ -44,10 +44,7 @@ export function Restablecer() {
         <Alerta tono="error">
           El enlace está incompleto. Ábralo de nuevo desde su correo o solicite uno nuevo.
         </Alerta>
-        <Link
-          to="/olvide"
-          className="mt-4 inline-block text-sm text-acento underline underline-offset-2"
-        >
+        <Link to="/olvide" className="d-inline-block mt-3 small">
           Solicitar un enlace nuevo
         </Link>
       </MarcoAcceso>
@@ -57,19 +54,16 @@ export function Restablecer() {
   return (
     <MarcoAcceso titulo="Definir contraseña">
       {listo ? (
-        <div className="flex flex-col gap-4">
+        <div className="d-flex flex-column gap-3">
           <Alerta tono="ok">
             Su contraseña quedó guardada. Por seguridad, se cerraron sus sesiones abiertas.
           </Alerta>
-          <Link
-            to="/ingresar"
-            className="text-sm font-semibold text-acento underline underline-offset-2"
-          >
+          <Link to="/ingresar" className="fw-semibold">
             Ir a ingresar
           </Link>
         </div>
       ) : (
-        <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+        <form onSubmit={enviar} noValidate className="d-flex flex-column gap-3">
           {error && <Alerta tono="error">{error}</Alerta>}
           <Campo
             etiqueta="Contraseña nueva"
@@ -92,10 +86,7 @@ export function Restablecer() {
           <Boton type="submit" cargando={enviando} disabled={!password || !repetida}>
             Guardar contraseña
           </Boton>
-          <Link
-            to="/olvide"
-            className="self-center text-sm text-acento underline underline-offset-2"
-          >
+          <Link to="/olvide" className="align-self-center small">
             Solicitar un enlace nuevo
           </Link>
         </form>

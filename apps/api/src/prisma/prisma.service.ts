@@ -32,4 +32,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       return fn(tx);
     });
   }
+
+  /**
+   * Transacción marcada como superadmin: habilita las funciones de lectura entre condominios
+   * (`app_condominios`, `app_membresias_todas`). Llamar SOLO tras verificar `usuario.es_superadmin`.
+   */
+  async comoSuperadmin<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.superadmin', 'true', true)`;
+      return fn(tx);
+    });
+  }
 }

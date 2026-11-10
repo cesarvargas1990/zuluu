@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import Modal from 'react-bootstrap/Modal';
 import { Boton } from './ui';
 
 interface Props {
@@ -12,10 +13,7 @@ interface Props {
   onCerrar: () => void;
 }
 
-/**
- * Diálogo modal de confirmación sobre `<dialog>` nativo: atrapa el foco, cierra con Escape
- * y devuelve el foco al elemento que lo abrió.
- */
+/** Confirmación modal (React-Bootstrap): atrapa el foco, cierra con Escape y devuelve el foco. */
 export function DialogoConfirmacion({
   abierto,
   titulo,
@@ -26,44 +24,21 @@ export function DialogoConfirmacion({
   onConfirmar,
   onCerrar,
 }: Props) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const origen = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (abierto && !d.open) {
-      origen.current = document.activeElement as HTMLElement | null;
-      d.showModal?.();
-      if (!d.showModal) d.setAttribute('open', '');
-    } else if (!abierto && d.open) {
-      d.close?.();
-      if (!d.close) d.removeAttribute('open');
-      origen.current?.focus();
-    }
-  }, [abierto]);
-
   return (
-    <dialog
-      ref={ref}
+    <Modal
+      show={abierto}
+      onHide={onCerrar}
+      centered
       aria-labelledby="dialogo-titulo"
-      onCancel={(e) => {
-        e.preventDefault();
-        onCerrar();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          onCerrar();
-        }
-      }}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-borde bg-superficie p-6 text-texto shadow-xl backdrop:bg-black/40"
+      animation={import.meta.env.MODE !== 'test'}
     >
-      <h2 id="dialogo-titulo" className="text-lg font-semibold">
-        {titulo}
-      </h2>
-      <div className="mt-2 text-sm text-texto-suave">{children}</div>
-      <div className="mt-6 flex justify-end gap-3">
+      <Modal.Header closeButton closeLabel="Cerrar">
+        <Modal.Title as="h2" id="dialogo-titulo" className="h5">
+          {titulo}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body className="text-body-secondary">{children}</Modal.Body>
+      <Modal.Footer>
         <Boton variante="secundario" onClick={onCerrar}>
           Cancelar
         </Boton>
@@ -74,7 +49,7 @@ export function DialogoConfirmacion({
         >
           {textoConfirmar}
         </Boton>
-      </div>
-    </dialog>
+      </Modal.Footer>
+    </Modal>
   );
 }

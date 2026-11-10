@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { authApi } from '@/api/auth';
 import { ErrorApi } from '@/api/cliente';
-import { MarcoAcceso } from '@/componentes/Layout';
+import { MarcoAcceso } from '@/componentes/layout/MarcoAcceso';
 import { Alerta, Boton, Campo } from '@/componentes/ui';
 import { useTitulo } from '@/componentes/useTitulo';
 
@@ -29,18 +29,18 @@ export function Olvide() {
   return (
     <MarcoAcceso titulo="Recuperar contraseña">
       {mensaje ? (
-        <div className="flex flex-col gap-4">
+        <div className="d-flex flex-column gap-3">
           <Alerta tono="ok">{mensaje}</Alerta>
-          <p className="text-sm text-texto-suave">
+          <p className="small text-body-secondary mb-0">
             El enlace vence en 30 minutos y sirve una sola vez.
           </p>
-          <Link to="/ingresar" className="text-sm text-acento underline underline-offset-2">
+          <Link to="/ingresar" className="small">
             Volver a ingresar
           </Link>
         </div>
       ) : (
-        <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
-          <p className="text-sm text-texto-suave">
+        <form onSubmit={enviar} noValidate className="d-flex flex-column gap-3">
+          <p className="small text-body-secondary mb-0">
             Le enviaremos un enlace para definir una contraseña nueva.
           </p>
           {error && <Alerta tono="error">{error}</Alerta>}
@@ -56,10 +56,7 @@ export function Olvide() {
           <Boton type="submit" cargando={enviando} disabled={!email}>
             Enviar enlace
           </Boton>
-          <Link
-            to="/ingresar"
-            className="self-center text-sm text-acento underline underline-offset-2"
-          >
+          <Link to="/ingresar" className="align-self-center small">
             Volver a ingresar
           </Link>
         </form>

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 /**
  * Logotipo ZULU Servicios Integrales (vector aproximado a partir de la imagen de marca).
  * Reemplazar por el archivo original cuando ZULU lo entregue.
@@ -5,9 +7,11 @@
 export function Logo({
   className,
   conSubtitulo = true,
+  style,
 }: {
   className?: string;
   conSubtitulo?: boolean;
+  style?: CSSProperties;
 }) {
   return (
     <svg
@@ -15,10 +19,11 @@ export function Logo({
       role="img"
       aria-label="ZULU Servicios Integrales S.A.S."
       className={className}
+      style={style}
     >
       {/* Techo sobre la última U: verde lima y naranja */}
-      <path d="M178 22 L199 8 L206 13 L186 26 Z" fill="var(--color-lima)" />
-      <path d="M199 8 L226 22 L218 26 L199 14 Z" fill="var(--color-naranja)" />
+      <path d="M178 22 L199 8 L206 13 L186 26 Z" fill="var(--zulu-lima, #8cc63f)" />
+      <path d="M199 8 L226 22 L218 26 L199 14 Z" fill="var(--zulu-naranja, #f08a24)" />
       <text
         x="120"
         y="64"

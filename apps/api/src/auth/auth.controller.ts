@@ -24,7 +24,7 @@ import { MfaService } from './mfa.service';
 import { RecuperacionService } from './recuperacion.service';
 
 export const COOKIE_REFRESH = 'zulu_rt';
-const RUTA_COOKIE = '/api/v1/auth';
+const RUTA_COOKIE = `${(process.env.WEB_BASE_PATH ?? '').replace(/\/+$/, '')}/api/v1/auth`;
 
 const login = z
   .object({ email: z.string().trim().min(3).max(254), password: z.string().min(1).max(256) })

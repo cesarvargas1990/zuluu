@@ -5,7 +5,11 @@ import { useSesion } from './SesionProvider';
 
 function Cargando() {
   return (
-    <div role="status" className="grid min-h-dvh place-items-center text-texto-suave">
+    <div
+      role="status"
+      className="d-grid vh-100 text-body-secondary"
+      style={{ placeItems: 'center' }}
+    >
       Cargando…
     </div>
   );
@@ -40,14 +44,27 @@ export function RequiereSesion() {
   return <Outlet />;
 }
 
-/** Contenido solo para ciertos roles en el condominio activo. */
-export function RequiereRol({ roles, children }: { roles: Rol[]; children: ReactNode }) {
-  const { condominioActivo } = useSesion();
-  if (!condominioActivo || !roles.includes(condominioActivo.rol)) {
+/** Contenido solo para ciertos roles en el condominio activo (o solo superadmin con `roles=[]` y `superadmin`). */
+export function RequiereRol({
+  roles,
+  superadmin = false,
+  children,
+}: {
+  roles: Rol[];
+  superadmin?: boolean;
+  children: ReactNode;
+}) {
+  const { condominioActivo, estado } = useSesion();
+  const esSuperadmin = estado.tipo === 'activa' && estado.yo.esSuperadmin;
+  const permitido = superadmin
+    ? esSuperadmin
+    : !!condominioActivo && roles.includes(condominioActivo.rol);
+  if (!permitido) {
     return (
-      <div className="mx-auto max-w-xl py-12 text-center">
-        <h1 className="text-2xl font-semibold">No tiene acceso a esta sección</h1>
-        <p className="mt-2 text-texto-suave">
+      <div className="estado-vacio">
+        <i className="bi bi-shield-lock" aria-hidden="true" />
+        <h1 className="h4 mt-3">No tiene acceso a esta sección</h1>
+        <p className="text-body-secondary">
           Si necesita acceso, pídaselo a la administradora del condominio.
         </p>
       </div>

@@ -15,15 +15,18 @@
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
     "@zulu/shared": "workspace:*",
+    "bootstrap": "5.3.8",
+    "bootstrap-icons": "1.13.2",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
+    "react-bootstrap": "2.10.10",
     "react-dom": "^19.1.0",
-    "react-router": "^7.18.5"
+    "react-router": "^7.18.5",
+    "recharts": "3.10.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@playwright/test": "^1.65.0",
-    "@tailwindcss/vite": "^4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -40,7 +43,7 @@
     "jsdom": "^31.0.0",
     "otplib": "^12.0.1",
     "pg": "^8.23.1",
-    "tailwindcss": "^4.3.5",
+    "sass": "1.108.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",

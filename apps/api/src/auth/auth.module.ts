@@ -30,6 +30,6 @@ import { SesionesService } from './sesiones.service';
     MfaGuard,
     { provide: Mailer, useClass: SmtpMailer },
   ],
-  exports: [JwtModule, JwtGuard, MfaGuard, RecuperacionService, AuthService],
+  exports: [JwtModule, JwtGuard, MfaGuard, RecuperacionService, AuthService, SesionesService],
 })
 export class AuthModule {}

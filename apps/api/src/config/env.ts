@@ -18,7 +18,26 @@ const esquema = z.object({
   AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
+  /** Usuario y clave SMTP (p. ej. Gmail con clave de aplicación). Vacíos = sin autenticación (Mailpit). */
+  SMTP_USER: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  SMTP_PASS: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  /** TLS directo (puerto 465). Si no se indica, se deduce del puerto. */
+  SMTP_SECURE: z
+    .enum(['true', 'false', ''])
+    .optional()
+    .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
   MAIL_FROM: z.string().default('ZULU ADMIN <no-responder@zulu.test>'),
+  /** Prefijo público de la web (p. ej. /zulu en producción). */
+  WEB_BASE_PATH: z
+    .string()
+    .default('')
+    .transform((v) => v.replace(/\/+$/, '')),
 });
 
 export type Env = z.infer<typeof esquema> & { mfaClave: Buffer };
