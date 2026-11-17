@@ -44,7 +44,7 @@ export function Inicio() {
             </EstadoVacio>
           ) : (
             <EstadoVacio icono="bi-buildings" titulo="No tiene condominios asignados">
-              Pida a la administradora de su condominio que le asigne un rol.
+              Pida al administrador de su condominio que le asigne un rol.
             </EstadoVacio>
           )}
         </Card>
@@ -107,7 +107,7 @@ export function Inicio() {
         <Card.Header className="pt-4 pb-0 border-0">
           <h2 className="h5 mb-1">Lo que puede hacer según su rol</h2>
           <p className="small text-body-secondary mb-0">
-            La administradora puede concederle o restringirle permisos adicionales.
+            El administrador puede concederle o restringirle permisos adicionales.
           </p>
         </Card.Header>
         <Card.Body>

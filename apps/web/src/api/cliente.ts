@@ -11,12 +11,15 @@ export interface ErrorCampo {
 export class ErrorApi extends Error {
   readonly status: number;
   readonly errores?: ErrorCampo[];
+  /** Cuerpo completo de la respuesta, para errores que traen datos (p. ej. posibles duplicados). */
+  readonly cuerpo?: unknown;
 
-  constructor(status: number, mensaje: string, errores?: ErrorCampo[]) {
+  constructor(status: number, mensaje: string, errores?: ErrorCampo[], cuerpo?: unknown) {
     super(mensaje);
     this.name = 'ErrorApi';
     this.status = status;
     this.errores = errores;
+    this.cuerpo = cuerpo;
   }
 
   /** Mensaje de error de un campo concreto, si el API lo reportó. */
@@ -71,7 +74,7 @@ async function leerError(r: Response): Promise<ErrorApi> {
         : r.status === 429
           ? 'Demasiados intentos. Espere un momento e intente de nuevo.'
           : ERROR_GENERICO;
-  return new ErrorApi(r.status, mensaje, Array.isArray(c.errores) ? c.errores : undefined);
+  return new ErrorApi(r.status, mensaje, Array.isArray(c.errores) ? c.errores : undefined, cuerpo);
 }
 
 async function ejecutar(ruta: string, o: OpcionesApi): Promise<Response> {
@@ -80,12 +83,13 @@ async function ejecutar(ruta: string, o: OpcionesApi): Promise<Response> {
   const condominio = config.obtenerCondominio();
   if (token) headers.set('authorization', `Bearer ${token}`);
   if (condominio) headers.set('x-condominio-id', condominio);
-  if (o.cuerpo !== undefined) headers.set('content-type', 'application/json');
+  const multipart = typeof FormData !== 'undefined' && o.cuerpo instanceof FormData;
+  if (o.cuerpo !== undefined && !multipart) headers.set('content-type', 'application/json');
   try {
     return await fetch(`${BASE_API}${ruta}`, {
       method: o.metodo ?? 'GET',
       headers,
-      body: o.cuerpo === undefined ? undefined : JSON.stringify(o.cuerpo),
+      body: o.cuerpo === undefined ? undefined : multipart ? o.cuerpo as FormData : JSON.stringify(o.cuerpo),
       credentials: 'same-origin',
     });
   } catch {
@@ -107,4 +111,15 @@ export async function api<T = unknown>(ruta: string, o: OpcionesApi = {}): Promi
   if (r.status === 204) return undefined as T;
   const texto = await r.text();
   return (texto ? JSON.parse(texto) : undefined) as T;
+}
+
+/** Descarga autenticada para archivos binarios; conserva renovación y cabeceras del cliente. */
+export async function apiArchivo(ruta: string): Promise<Blob> {
+  let r = await ejecutar(ruta, {});
+  if (r.status === 401) {
+    if (await config.renovar()) r = await ejecutar(ruta, {});
+    else config.alTerminarSesion();
+  }
+  if (!r.ok) throw await leerError(r);
+  return r.blob();
 }

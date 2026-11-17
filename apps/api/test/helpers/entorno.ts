@@ -170,6 +170,21 @@ async function limpiar(owner: PrismaClient, condominios: string[], usuarios: str
   await owner.auditoria.deleteMany({
     where: { OR: [enC, { actorId: { in: usuarios } }, { objetoId: { in: usuarios } }] },
   });
+  await owner.movimientoCartera.deleteMany({ where: enC });
+  await owner.ajusteCartera.deleteMany({ where: enC });
+  await owner.compromisoPago.deleteMany({ where: enC });
+  await owner.gestionCobro.deleteMany({ where: enC });
+  await owner.obligacion.deleteMany({ where: enC });
+  await owner.importacionCartera.deleteMany({ where: enC });
+  await owner.soporteRecaudo.deleteMany({ where: enC });
+  await owner.imputacionRecaudo.deleteMany({ where: enC });
+  await owner.recaudo.deleteMany({ where: enC });
+  await owner.importacionRecaudos.deleteMany({ where: enC });
+  await owner.titularidad.deleteMany({ where: enC });
+  await owner.documentoPropietario.deleteMany({ where: enC });
+  await owner.importacionPropietarios.deleteMany({ where: enC });
+  await owner.propietario.deleteMany({ where: enC });
+  await owner.unidadPrivada.deleteMany({ where: enC });
   await owner.permiso.deleteMany({ where: enC });
   await owner.accesoExcepcional.deleteMany({ where: { OR: [enC, enU] } });
   await owner.membresia.deleteMany({ where: { OR: [enC, enU] } });

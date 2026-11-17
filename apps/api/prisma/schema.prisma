@@ -20,6 +20,33 @@ enum Rol {
   CONSEJO
 }
 
+enum TipoPersonaPropietaria {
+  NATURAL
+  JURIDICA
+}
+
+enum TipoUnidadPrivada {
+  VILLA
+  LOTE
+}
+
+enum TipoTitularidad {
+  TITULAR
+  COTITULAR
+}
+
+enum EstadoTitularidad {
+  PENDIENTE_VALIDAR
+  VALIDADO
+  OBSERVADO
+}
+
+enum EstadoImportacionPropietarios {
+  PENDIENTE_REVISION
+  APROBADA
+  RECHAZADA
+}
+
 model Condominio {
   id          String   @id @default(uuid()) @db.Uuid
   razonSocial String   @map("razon_social")
@@ -32,6 +59,13 @@ model Condominio {
   auditoria            Auditoria[]
   permisos             Permiso[]
   accesosExcepcionales AccesoExcepcional[]
+  propietarios          Propietario[]
+  unidades              UnidadPrivada[]
+  titularidades         Titularidad[]
+  importaciones         ImportacionPropietarios[]
+  recaudos              Recaudo[]
+  importacionesRecaudos ImportacionRecaudos[]
+  obligaciones          Obligacion[]
 
   @@map("condominio")
 }
@@ -194,4 +228,442 @@ model AccesoExcepcional {
 
   @@index([condominioId, usuarioId])
   @@map("acceso_excepcional")
+}
+
+/// Persona o entidad propietaria. Los datos de contacto pueden quedar pendientes.
+model Propietario {
+  id             String                @id @default(uuid()) @db.Uuid
+  condominioId   String                @map("condominio_id") @db.Uuid
+  tipoPersona    TipoPersonaPropietaria @default(NATURAL) @map("tipo_persona")
+  nombre         String                @db.VarChar(180)
+  tipoDocumento  String?               @map("tipo_documento") @db.VarChar(40)
+  numeroDocumento String?              @map("numero_documento") @db.VarChar(80)
+  telefono       String?               @db.VarChar(40)
+  correo         String?               @db.VarChar(254)
+  direccion      String?               @db.VarChar(300)
+  activo         Boolean               @default(true)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  condominio Condominio  @relation(fields: [condominioId], references: [id])
+  titularidades Titularidad[]
+  documentos    DocumentoPropietario[]
+  recaudos      Recaudo[]
+
+  @@index([condominioId, activo, nombre])
+  @@index([condominioId, tipoDocumento, numeroDocumento])
+  @@unique([condominioId, id])
+  @@map("propietario")
+}
+
+model DocumentoPropietario {
+  id            String   @id @default(uuid()) @db.Uuid
+  condominioId  String   @map("condominio_id") @db.Uuid
+  propietarioId String   @map("propietario_id") @db.Uuid
+  nombre        String   @db.VarChar(180)
+  mimeType      String   @map("mime_type") @db.VarChar(100)
+  tamano        Int
+  contenido     Bytes   @db.ByteA
+  creadoPor     String   @map("creado_por") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  propietario Propietario @relation(fields: [condominioId, propietarioId], references: [condominioId, id])
+
+  @@index([condominioId, propietarioId, createdAt])
+  @@map("documento_propietario")
+}
+
+model ImportacionPropietarios {
+  id           String                       @id @default(uuid()) @db.Uuid
+  condominioId String                       @map("condominio_id") @db.Uuid
+  archivo      String                       @db.VarChar(180)
+  filas        Json
+  resumen      Json
+  estado       EstadoImportacionPropietarios @default(PENDIENTE_REVISION)
+  creadaPor    String                       @map("creada_por") @db.Uuid
+  aprobadaPor  String?                      @map("aprobada_por") @db.Uuid
+  creadaEn     DateTime                     @default(now()) @map("creada_en") @db.Timestamptz(3)
+  revisadaEn   DateTime?                    @map("revisada_en") @db.Timestamptz(3)
+
+  condominio Condominio @relation(fields: [condominioId], references: [id])
+
+  @@index([condominioId, estado, creadaEn])
+  @@map("importacion_propietarios")
+}
+
+/// Unidad privada de la copropiedad; el código es único dentro del condominio.
+model UnidadPrivada {
+  id                  String           @id @default(uuid()) @db.Uuid
+  condominioId        String           @map("condominio_id") @db.Uuid
+  codigo              String           @db.VarChar(60)
+  tipo                TipoUnidadPrivada
+  areaM2              Decimal?         @map("area_m2") @db.Decimal(12, 2)
+  coeficiente         Decimal?         @db.Decimal(9, 6)
+  cuotaMensual        Decimal?         @map("cuota_mensual") @db.Decimal(14, 2)
+  matriculaInmobiliaria String?         @map("matricula_inmobiliaria") @db.VarChar(80)
+  estadoJuridico      String?          @map("estado_juridico") @db.VarChar(120)
+  activa              Boolean          @default(true)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  condominio    Condominio    @relation(fields: [condominioId], references: [id])
+  titularidades Titularidad[]
+  recaudos      Recaudo[]
+  obligaciones  Obligacion[]
+  gestiones     GestionCobro[]
+  compromisos   CompromisoPago[]
+
+  @@unique([condominioId, codigo])
+  @@unique([condominioId, id])
+  @@index([condominioId, tipo, activa])
+  @@map("unidad_privada")
+}
+
+/// Relación temporal e históricamente conservada entre una persona y una unidad.
+model Titularidad {
+  id            String            @id @default(uuid()) @db.Uuid
+  condominioId  String            @map("condominio_id") @db.Uuid
+  propietarioId String            @map("propietario_id") @db.Uuid
+  unidadId      String            @map("unidad_id") @db.Uuid
+  tipo          TipoTitularidad
+  estado        EstadoTitularidad @default(PENDIENTE_VALIDAR)
+  desde         DateTime?         @db.Date
+  hasta         DateTime?         @db.Date
+  fuente        String?           @db.VarChar(240)
+  soporte        String?           @db.VarChar(500)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio  Condominio    @relation(fields: [condominioId], references: [id])
+  propietario Propietario   @relation(fields: [condominioId, propietarioId], references: [condominioId, id])
+  unidad      UnidadPrivada @relation(fields: [condominioId, unidadId], references: [condominioId, id])
+
+  @@index([condominioId, unidadId, hasta])
+  @@index([condominioId, propietarioId, hasta])
+  @@map("titularidad")
+}
+
+enum MedioPago {
+  TRANSFERENCIA
+  CONSIGNACION
+  EFECTIVO
+  OTRO
+}
+
+enum EstadoRecaudo {
+  PENDIENTE
+  VERIFICADO
+  OBSERVADO
+  ANULADO
+}
+
+enum ConceptoImputacion {
+  CUOTA_ADMINISTRACION
+  CUOTA_VENCIDA
+  INTERESES
+  CUOTA_EXTRAORDINARIA
+  OTRO
+  SALDO_INICIAL
+}
+
+enum OrigenRecaudo {
+  MANUAL
+  IMPORTACION
+}
+
+enum EstadoImportacionRecaudos {
+  PENDIENTE
+  CONFIRMADA
+  DESCARTADA
+}
+
+/// Pago recibido (REQ-003). Nunca se borra: se anula con motivo. Sin unidad queda por identificar.
+model Recaudo {
+  id                      String        @id @default(uuid()) @db.Uuid
+  condominioId            String        @map("condominio_id") @db.Uuid
+  /// Consecutivo por condominio; se muestra como RC-0001.
+  numero                  Int
+  unidadId                String?       @map("unidad_id") @db.Uuid
+  propietarioId           String?       @map("propietario_id") @db.Uuid
+  pagador                 String?       @db.VarChar(180)
+  fechaPago               DateTime      @map("fecha_pago") @db.Date
+  valor                   Decimal       @db.Decimal(18, 2)
+  medio                   MedioPago
+  referencia              String?       @db.VarChar(80)
+  banco                   String?       @db.VarChar(120)
+  observacion             String?       @db.VarChar(1000)
+  estado                  EstadoRecaudo @default(PENDIENTE)
+  origen                  OrigenRecaudo @default(MANUAL)
+  importacionId           String?       @map("importacion_id") @db.Uuid
+  posibleDuplicado        Boolean       @default(false) @map("posible_duplicado")
+  /// Excedente no imputado al verificar (anticipo).
+  saldoAFavor             Decimal       @default(0) @map("saldo_a_favor") @db.Decimal(18, 2)
+  observacionVerificacion String?       @map("observacion_verificacion") @db.VarChar(1000)
+  revisadoPor             String?       @map("revisado_por") @db.Uuid
+  revisadoEn              DateTime?     @map("revisado_en") @db.Timestamptz(3)
+  anuladoPor              String?       @map("anulado_por") @db.Uuid
+  anuladoEn               DateTime?     @map("anulado_en") @db.Timestamptz(3)
+  motivoAnulacion         String?       @map("motivo_anulacion") @db.VarChar(1000)
+  creadoPor               String        @map("creado_por") @db.Uuid
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  condominio   Condominio          @relation(fields: [condominioId], references: [id])
+  unidad       UnidadPrivada?      @relation(fields: [condominioId, unidadId], references: [condominioId, id])
+  propietario  Propietario?        @relation(fields: [condominioId, propietarioId], references: [condominioId, id])
+  imputaciones ImputacionRecaudo[]
+  soportes     SoporteRecaudo[]
+
+  @@unique([condominioId, numero])
+  @@unique([condominioId, id])
+  @@index([condominioId, estado, fechaPago])
+  @@index([condominioId, unidadId])
+  @@index([condominioId, referencia])
+  @@map("recaudo")
+}
+
+/// Distribución de un pago verificado. Inmutable: se crea una sola vez al verificar.
+model ImputacionRecaudo {
+  id              String             @id @default(uuid()) @db.Uuid
+  condominioId    String             @map("condominio_id") @db.Uuid
+  recaudoId       String             @map("recaudo_id") @db.Uuid
+  concepto        ConceptoImputacion
+  /// Periodo AAAA-MM.
+  periodo         String             @db.VarChar(7)
+  valorObligacion Decimal?           @map("valor_obligacion") @db.Decimal(18, 2)
+  valorAplicado   Decimal            @map("valor_aplicado") @db.Decimal(18, 2)
+  /// Obligación de cartera que este valor paga (REQ-004); null si no había obligación registrada.
+  obligacionId    String?            @map("obligacion_id") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recaudo Recaudo @relation(fields: [condominioId, recaudoId], references: [condominioId, id])
+
+  @@index([condominioId, recaudoId])
+  @@map("imputacion_recaudo")
+}
+
+/// Comprobante de un pago. Original inmutable con SHA-256.
+model SoporteRecaudo {
+  id           String   @id @default(uuid()) @db.Uuid
+  condominioId String   @map("condominio_id") @db.Uuid
+  recaudoId    String   @map("recaudo_id") @db.Uuid
+  nombre       String   @db.VarChar(180)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  tamano       Int
+  sha256       String   @db.Char(64)
+  contenido    Bytes    @db.ByteA
+  creadoPor    String   @map("creado_por") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recaudo Recaudo @relation(fields: [condominioId, recaudoId], references: [condominioId, id])
+
+  @@index([condominioId, recaudoId, createdAt])
+  @@map("soporte_recaudo")
+}
+
+/// Borrador de importación de pagos: filas ya revisadas; nada se crea hasta confirmar.
+model ImportacionRecaudos {
+  id            String                    @id @default(uuid()) @db.Uuid
+  condominioId  String                    @map("condominio_id") @db.Uuid
+  archivo       String                    @db.VarChar(180)
+  filas         Json
+  resumen       Json
+  estado        EstadoImportacionRecaudos @default(PENDIENTE)
+  creadaPor     String                    @map("creada_por") @db.Uuid
+  confirmadaPor String?                   @map("confirmada_por") @db.Uuid
+  creadaEn      DateTime                  @default(now()) @map("creada_en") @db.Timestamptz(3)
+  cerradaEn     DateTime?                 @map("cerrada_en") @db.Timestamptz(3)
+
+  condominio Condominio @relation(fields: [condominioId], references: [id])
+
+  @@index([condominioId, estado, creadaEn])
+  @@map("importacion_recaudos")
+}
+
+enum OrigenObligacion {
+  MANUAL
+  GENERACION
+  IMPORTACION
+}
+
+enum TipoMovimientoCartera {
+  CARGO
+  PAGO
+  REVERSO_PAGO
+  AJUSTE_DEBITO
+  AJUSTE_CREDITO
+  CREDITO_APLICADO
+}
+
+enum TipoAjusteCartera {
+  DEBITO
+  CREDITO
+}
+
+enum EstadoAjusteCartera {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum CanalGestion {
+  TELEFONO
+  CORREO
+  WHATSAPP
+  PRESENCIAL
+  CARTA
+  OTRO
+}
+
+enum EstadoCompromiso {
+  ABIERTO
+  CUMPLIDO
+  INCUMPLIDO
+  CANCELADO
+}
+
+enum EstadoImportacionCartera {
+  PENDIENTE
+  APROBADA
+  DESCARTADA
+}
+
+/// Obligación de una unidad (REQ-004). Inmutable: su saldo resulta de los movimientos de cartera.
+model Obligacion {
+  id               String             @id @default(uuid()) @db.Uuid
+  condominioId     String             @map("condominio_id") @db.Uuid
+  /// Consecutivo por condominio; se muestra como OBL-00001.
+  numero           Int
+  unidadId         String             @map("unidad_id") @db.Uuid
+  concepto         ConceptoImputacion
+  /// Periodo AAAA-MM.
+  periodo          String             @db.VarChar(7)
+  descripcion      String?            @db.VarChar(300)
+  fechaEmision     DateTime           @map("fecha_emision") @db.Date
+  fechaVencimiento DateTime           @map("fecha_vencimiento") @db.Date
+  valor            Decimal            @db.Decimal(18, 2)
+  origen           OrigenObligacion   @default(MANUAL)
+  importacionId    String?            @map("importacion_id") @db.Uuid
+  creadoPor        String             @map("creado_por") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  condominio  Condominio          @relation(fields: [condominioId], references: [id])
+  unidad      UnidadPrivada       @relation(fields: [condominioId, unidadId], references: [condominioId, id])
+  movimientos MovimientoCartera[]
+  ajustes     AjusteCartera[]
+
+  @@unique([condominioId, numero])
+  @@unique([condominioId, id])
+  @@index([condominioId, unidadId, periodo])
+  @@index([condominioId, fechaVencimiento])
+  @@map("obligacion")
+}
+
+/// Libro de cartera, solo se agrega: cargos, pagos verificados, reversos, ajustes y créditos aplicados.
+model MovimientoCartera {
+  id           String                @id @default(uuid()) @db.Uuid
+  condominioId String                @map("condominio_id") @db.Uuid
+  unidadId     String                @map("unidad_id") @db.Uuid
+  obligacionId String                @map("obligacion_id") @db.Uuid
+  tipo         TipoMovimientoCartera
+  /// Siempre positivo; el signo lo define el tipo.
+  valor        Decimal               @db.Decimal(18, 2)
+  fecha        DateTime              @db.Date
+  recaudoId    String?               @map("recaudo_id") @db.Uuid
+  imputacionId String?               @map("imputacion_id") @db.Uuid
+  ajusteId     String?               @map("ajuste_id") @db.Uuid
+  descripcion  String?               @db.VarChar(300)
+  creadoPor    String                @map("creado_por") @db.Uuid
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  obligacion Obligacion @relation(fields: [condominioId, obligacionId], references: [condominioId, id])
+
+  @@index([condominioId, obligacionId])
+  @@index([condominioId, unidadId, fecha])
+  @@index([condominioId, recaudoId])
+  @@map("movimiento_cartera")
+}
+
+/// Ajuste sobre una obligación: no la modifica; al aprobarse genera un movimiento.
+model AjusteCartera {
+  id            String              @id @default(uuid()) @db.Uuid
+  condominioId  String              @map("condominio_id") @db.Uuid
+  obligacionId  String              @map("obligacion_id") @db.Uuid
+  tipo          TipoAjusteCartera
+  valor         Decimal             @db.Decimal(18, 2)
+  motivo        String              @db.VarChar(1000)
+  soporte       String?             @db.VarChar(500)
+  estado        EstadoAjusteCartera @default(PENDIENTE)
+  solicitadoPor String              @map("solicitado_por") @db.Uuid
+  resueltoPor   String?             @map("resuelto_por") @db.Uuid
+  resueltoEn    DateTime?           @map("resuelto_en") @db.Timestamptz(3)
+  notaResolucion String?            @map("nota_resolucion") @db.VarChar(1000)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  obligacion Obligacion @relation(fields: [condominioId, obligacionId], references: [condominioId, id])
+
+  @@index([condominioId, estado, createdAt])
+  @@index([condominioId, obligacionId])
+  @@map("ajuste_cartera")
+}
+
+/// Gestión de cobro. No altera saldos.
+model GestionCobro {
+  id           String       @id @default(uuid()) @db.Uuid
+  condominioId String       @map("condominio_id") @db.Uuid
+  unidadId     String       @map("unidad_id") @db.Uuid
+  fecha        DateTime     @db.Date
+  canal        CanalGestion
+  contacto     String?      @db.VarChar(180)
+  resultado    String       @db.VarChar(1000)
+  proximaFecha DateTime?    @map("proxima_fecha") @db.Date
+  creadoPor    String       @map("creado_por") @db.Uuid
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  unidad      UnidadPrivada    @relation(fields: [condominioId, unidadId], references: [condominioId, id])
+  compromisos CompromisoPago[]
+
+  @@unique([condominioId, id])
+  @@index([condominioId, unidadId, fecha])
+  @@index([condominioId, proximaFecha])
+  @@map("gestion_cobro")
+}
+
+/// Compromiso de pago. No equivale a un pago ni modifica la deuda.
+model CompromisoPago {
+  id            String           @id @default(uuid()) @db.Uuid
+  condominioId  String           @map("condominio_id") @db.Uuid
+  unidadId      String           @map("unidad_id") @db.Uuid
+  gestionId     String?          @map("gestion_id") @db.Uuid
+  fechaPactada  DateTime         @map("fecha_pactada") @db.Date
+  valor         Decimal          @db.Decimal(18, 2)
+  estado        EstadoCompromiso @default(ABIERTO)
+  observaciones String?          @db.VarChar(1000)
+  creadoPor     String           @map("creado_por") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  unidad  UnidadPrivada @relation(fields: [condominioId, unidadId], references: [condominioId, id])
+  gestion GestionCobro? @relation(fields: [condominioId, gestionId], references: [condominioId, id])
+
+  @@index([condominioId, estado, fechaPactada])
+  @@index([condominioId, unidadId])
+  @@map("compromiso_pago")
+}
+
+/// Borrador de importación de saldos iniciales: nada se crea hasta aprobar.
+model ImportacionCartera {
+  id           String                   @id @default(uuid()) @db.Uuid
+  condominioId String                   @map("condominio_id") @db.Uuid
+  archivo      String                   @db.VarChar(180)
+  fechaCorte   DateTime                 @map("fecha_corte") @db.Date
+  filas        Json
+  resumen      Json
+  estado       EstadoImportacionCartera @default(PENDIENTE)
+  creadaPor    String                   @map("creada_por") @db.Uuid
+  aprobadaPor  String?                  @map("aprobada_por") @db.Uuid
+  creadaEn     DateTime                 @default(now()) @map("creada_en") @db.Timestamptz(3)
+  cerradaEn    DateTime?                @map("cerrada_en") @db.Timestamptz(3)
+
+  @@index([condominioId, estado, creadaEn])
+  @@map("importacion_cartera")
 }

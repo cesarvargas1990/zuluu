@@ -19,6 +19,29 @@ export interface SeccionMenu {
 export const MENU: SeccionMenu[] = [
   { titulo: 'General', items: [{ ruta: '/', texto: 'Inicio', icono: 'bi-speedometer2' }] },
   {
+    titulo: 'Gestión del condominio',
+    items: [
+      {
+        ruta: '/propietarios',
+        texto: 'Propietarios y unidades',
+        icono: 'bi-houses',
+        roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
+      },
+      {
+        ruta: '/recaudos',
+        texto: 'Pagos y recaudos',
+        icono: 'bi-cash-coin',
+        roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
+      },
+      {
+        ruta: '/cartera',
+        texto: 'Gestión de cartera',
+        icono: 'bi-bank',
+        roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
+      },
+    ],
+  },
+  {
     titulo: 'Configuración',
     items: [
       {

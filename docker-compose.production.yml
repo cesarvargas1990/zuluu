@@ -1,0 +1,83 @@
+name: zulu
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: zulu_owner
+      POSTGRES_PASSWORD: ${ZULU_DB_OWNER_PASSWORD:?set ZULU_DB_OWNER_PASSWORD}
+      POSTGRES_DB: zulu_admin
+      ZULU_APP_DB_PASSWORD: ${ZULU_APP_DB_PASSWORD:?set ZULU_APP_DB_PASSWORD}
+    volumes:
+      - zulu_pgdata:/var/lib/postgresql/data
+      - ./deploy/01-app-role.sh:/docker-entrypoint-initdb.d/01-app-role.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zulu_owner -d zulu_admin']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks: [zulu_private]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    command: ['pnpm', '--filter', '@zulu/api', 'exec', 'prisma', 'migrate', 'deploy']
+    environment:
+      DATABASE_URL: postgresql://zulu_owner:${ZULU_DB_OWNER_PASSWORD:?set ZULU_DB_OWNER_PASSWORD}@db:5432/zulu_admin?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+    networks: [zulu_private]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      DATABASE_URL: postgresql://zulu_owner:${ZULU_DB_OWNER_PASSWORD:?set ZULU_DB_OWNER_PASSWORD}@db:5432/zulu_admin?schema=public
+      APP_DATABASE_URL: postgresql://zulu_app:${ZULU_APP_DB_PASSWORD:?set ZULU_APP_DB_PASSWORD}@db:5432/zulu_admin?schema=public
+      JWT_ACCESS_SECRET: ${ZULU_JWT_ACCESS_SECRET:?set ZULU_JWT_ACCESS_SECRET}
+      JWT_ACCESS_TTL_SEG: 900
+      REFRESH_INACTIVIDAD_HORAS: 12
+      REFRESH_MAX_DIAS: 7
+      MFA_ENC_KEY: ${ZULU_MFA_ENC_KEY:?set ZULU_MFA_ENC_KEY}
+      WEB_ORIGIN: https://cesarvargas.tech
+      WEB_BASE_PATH: /zulu
+      AUTH_RATE_LIMIT: 10
+      SMTP_HOST: ${ZULU_SMTP_HOST:-localhost}
+      SMTP_PORT: ${ZULU_SMTP_PORT:-1025}
+      SMTP_USER: ${ZULU_SMTP_USER:-}
+      SMTP_PASS: ${ZULU_SMTP_PASS:-}
+      SMTP_SECURE: ${ZULU_SMTP_SECURE:-}
+      MAIL_FROM: ${ZULU_MAIL_FROM:-ZULU ADMIN <no-responder@zulu.test>}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose: ['3000']
+    restart: unless-stopped
+    networks: [zulu_private]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    depends_on: [api]
+    ports:
+      - '127.0.0.1:8301:80'
+    restart: unless-stopped
+    networks: [zulu_private]
+
+volumes:
+  zulu_pgdata:
+
+networks:
+  zulu_private:
+    name: zulu_private

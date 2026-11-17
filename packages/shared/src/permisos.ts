@@ -31,7 +31,8 @@ export const MATRIZ_PERMISOS: Readonly<Record<Rol, MatrizRol>> = {
     '08': LCE,
     '09': LCE,
     '10': LCE,
-    '02': ['crear'],
+    // Registra pagos y consulta su estado; no verifica ni anula (REQ-003).
+    '02': LC,
   },
   CONTADORA: {
     '02': ['leer', 'crear', 'editar', 'aprobar', 'exportar'],

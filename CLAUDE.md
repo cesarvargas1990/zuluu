@@ -5,8 +5,9 @@ Plataforma web para administrar condominios (expedientes, cartera, finanzas, jur
 ## Stack
 
 - Monorepo **pnpm** (Node ≥ 22). `apps/api` NestJS 11 + Prisma 6 + PostgreSQL 17 · `apps/web` React + Vite + TS · `packages/shared` tipos y constantes de dominio (roles, áreas, estados).
+- **UI: Bootstrap 5.3 + React-Bootstrap + tema Sass ZULU, dashboard con barra lateral** (decisión 2026-11-09; migración completada). Seguir la skill `dashboard-bootstrap`.
 - Infra local en `docker-compose.yml`: Postgres (**puerto 5433**), MinIO (S3, 9000/9001), Mailpit (SMTP 1025, bandeja http://localhost:8025).
-- Identidad visual ZULU: verde bosque `#0b2e1a` + techo lima `#8cc63f` / naranja `#f08a24` (tokens en `apps/web/src/index.css`; lima/naranja solo decorativos). Logo vectorial provisional en `apps/web/src/componentes/Logo.tsx`.
+- Identidad visual ZULU: verde bosque `#0b2e1a` + techo lima `#8cc63f` / naranja `#f08a24` (variables en `apps/web/src/estilos/_variables.scss`; lima/naranja solo decorativos). Logo vectorial provisional en `apps/web/src/componentes/Logo.tsx`.
 - Pruebas: Vitest (unit en `src/**/*.spec.ts`, integración en `apps/api/test/*.int.spec.ts` contra Postgres real).
 
 ## Comandos
@@ -36,11 +37,22 @@ docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en
 - Matriz rol→permisos en `packages/shared/src/permisos.ts` (borrador, validar con ZULU). Superadmin = `usuario.es_superadmin`; datos solo con acceso excepcional (lectura).
 - Auditoría: `AuditoriaService.registrar(tx, evento)` dentro de la misma transacción; nunca incluir secretos.
 
+## Consola de superadmin (ya implementado)
+
+- API `/api/v1/admin/*` (`apps/api/src/admin/`): `SuperadminGuard` + MFA. Lecturas entre condominios solo con `prisma.comoSuperadmin()` (funciones `app_condominios()` / `app_membresias_todas()` que exigen `app.superadmin`); escrituras por condominio con `withTenant`.
+- Crear usuario ⇒ invitación por correo (`correos.ts`, enlace 72 h). Web: `/admin/usuarios`, `/admin/condominios`.
+
+## Producción
+
+- https://cesarvargas.tech/zulu · servidor `cvargas@147.93.1.252`, carpeta `~/zuluu` (código sincronizado con rsync, sin git) · compose `docker-compose.production.yml` (servicios `db`, `migrate`, `api`, `web`; nginx del host → `127.0.0.1:8301`).
+- Secretos solo en `~/zuluu/.env` del servidor (`ZULU_*`, ver `deploy/env.production.example`; SMTP Gmail con clave de aplicación).
+- Desplegar: respaldo `pg_dump` en `~/backups/zulu/` → `rsync` de `apps` y `packages` (excluir node_modules, dist, .env, `._*`) y archivos raíz → `docker compose -f docker-compose.production.yml build && up -d` (migrate aplica migraciones) → verificar `/zulu/api/v1/health`.
+
 ## Web (`apps/web`)
 
-- React 19 + React Router 7 + TanStack Query + Tailwind v4. Rutas en `src/rutas.tsx`; sesión en `src/sesion/` (token solo en memoria, renovación con cookie y Web Locks).
+- React 19 + React Router 7 + TanStack Query. Estilos: Bootstrap 5 + React-Bootstrap con tema Sass en `src/estilos/` (skill `dashboard-bootstrap`). Layout en `src/componentes/layout/` (AppShell, Sidebar, menú en `navegacion.ts`). Rutas en `src/rutas.tsx`; sesión en `src/sesion/` (token solo en memoria, renovación con cookie y Web Locks).
 - Llamar al API siempre con `api()` de `src/api/cliente.ts` (agrega token y `X-Condominio-Id`, renueva ante 401). Endpoints donde 401 es una respuesta válida usan `renovarEn401: false`.
-- Componentes accesibles propios en `src/componentes/` (`Campo`, `Boton`, `Alerta`, `Etiqueta`, `DialogoConfirmacion`). Estados siempre con texto, no solo color.
+- Componentes base en `src/componentes/ui.tsx` sobre React-Bootstrap (`Campo`, `Boton`, `Alerta`, `Etiqueta`, `Tarjeta`) + `DialogoConfirmacion` (Modal) + `dashboard/` (`PageHeader`, `KpiCard`, `Semaforo`, `EstadoVacio`). Estados siempre con texto, no solo color.
 - Áreas en orden: usar `AREA_CODIGOS` de `@zulu/shared`, nunca `Object.keys(AREAS)`.
 
 ## Flujo de trabajo: Spec-Driven Development
@@ -54,5 +66,6 @@ strict-tdd-mode: enabled
 - `zulu-domain` — invariantes de negocio, roles, glosario, pruebas de aceptación.
 - `nest-module` — estructura y reglas para módulos del API.
 - `prisma-tenant-table` — tablas, migraciones y RLS.
+- `dashboard-bootstrap` — UI premium con Bootstrap 5 / React-Bootstrap: tema ZULU, layout con barra lateral, KPIs, semáforos, formularios, migración desde Tailwind.
 
-Skills de usuario útiles: `sdd-*` (flujo), `ui-ux-pro-max` / `better-accessibility` / `better-writing` (UI en español, accesible), `playwright-cli` (E2E), `security-review` / `code-review` (antes de PR).
+Skills de usuario útiles: `sdd-*` (flujo), `dataviz` (gráficos y KPIs), `ui-ux-pro-max` / `better-accessibility` / `better-writing` (UI en español, accesible), `playwright-cli` (E2E), `security-review` / `code-review` (antes de PR).

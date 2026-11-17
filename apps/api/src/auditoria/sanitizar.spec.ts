@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { sanitizar } from './sanitizar';
 
 describe('sanitizar', () => {
@@ -19,6 +20,13 @@ describe('sanitizar', () => {
       rol: 'ASISTENTE',
       activo: false,
       venceEn: null,
+    });
+  });
+
+  it('serializa decimales de Prisma como texto compatible con JSON', () => {
+    expect(sanitizar({ areaM2: new Prisma.Decimal('12.50'), cuota: new Prisma.Decimal('12000') })).toEqual({
+      areaM2: '12.5',
+      cuota: '12000',
     });
   });
 

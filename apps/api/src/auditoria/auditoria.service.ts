@@ -39,6 +39,24 @@ export class AuditoriaService {
     });
   }
 
+  /** Varios eventos en una sola inserción (operaciones masivas, p. ej. importaciones). */
+  async registrarVarios(tx: Prisma.TransactionClient, eventos: EventoAuditoria[]): Promise<void> {
+    if (eventos.length === 0) return;
+    const ctx = contexto.actual();
+    await tx.auditoria.createMany({
+      data: eventos.map((e) => ({
+        accion: e.accion,
+        objetoTipo: e.objetoTipo,
+        objetoId: e.objetoId ?? null,
+        condominioId: e.condominioId ?? null,
+        actorId: e.actorId ?? ctx.usuarioId ?? null,
+        antes: json(e.antes),
+        despues: json(e.despues),
+        ip: ctx.ip ?? null,
+      })),
+    });
+  }
+
   /** Evento sin transacción de negocio (login, 403). Con condominio usa su contexto RLS. */
   async registrarSuelto(e: EventoAuditoria): Promise<void> {
     if (e.condominioId) {

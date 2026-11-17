@@ -1,9 +1,9 @@
 import type { Accion, Rol } from '@zulu/shared';
 
 export const NOMBRE_ROL: Record<Rol, string> = {
-  ADMINISTRADORA: 'Administradora',
-  ASISTENTE: 'Asistente administrativa',
-  CONTADORA: 'Contadora',
+  ADMINISTRADORA: 'Administrador',
+  ASISTENTE: 'Asistente administrativo',
+  CONTADORA: 'Contador',
   ASESOR_JURIDICO: 'Asesor jurídico',
   OPERACIONES: 'Operaciones / mantenimiento',
   CONSEJO: 'Consejo',

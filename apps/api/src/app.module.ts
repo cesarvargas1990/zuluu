@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
+import { CarteraModule } from './cartera/cartera.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtGuard } from './auth/jwt.guard';
@@ -12,7 +13,9 @@ import { PermisoGuard } from './autorizacion/permiso.guard';
 import { ConfigEnvModule } from './config/config.module';
 import { ContextoMiddleware } from './contexto/contexto-solicitud';
 import { HealthModule } from './health/health.module';
+import { PropietariosModule } from './propietarios/propietarios.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RecaudosModule } from './recaudos/recaudos.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     AutorizacionModule,
     AdminModule,
+    CarteraModule,
+    PropietariosModule,
+    RecaudosModule,
   ],
   providers: [
     // Orden de ejecución: límite → identidad → MFA → condominio → permiso. Denegar por defecto.

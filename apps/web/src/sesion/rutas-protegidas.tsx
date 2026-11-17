@@ -65,7 +65,7 @@ export function RequiereRol({
         <i className="bi bi-shield-lock" aria-hidden="true" />
         <h1 className="h4 mt-3">No tiene acceso a esta sección</h1>
         <p className="text-body-secondary">
-          Si necesita acceso, pídaselo a la administradora del condominio.
+          Si necesita acceso, pídaselo al administrador del condominio.
         </p>
       </div>
     );

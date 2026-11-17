@@ -9,6 +9,9 @@ import { MfaConfigurar } from '@/paginas/MfaConfigurar';
 import { NoEncontrado } from '@/paginas/NoEncontrado';
 import { Olvide } from '@/paginas/Olvide';
 import { Personas } from '@/paginas/Personas';
+import { Propietarios } from '@/paginas/Propietarios';
+import { Recaudos } from '@/paginas/Recaudos';
+import { Cartera } from '@/paginas/Cartera';
 import { Restablecer } from '@/paginas/Restablecer';
 import {
   RequiereAnonimo,
@@ -40,6 +43,30 @@ export const rutas: RouteObject[] = [
         element: <AppShell />,
         children: [
           { path: '/', element: <Inicio /> },
+          {
+            path: '/propietarios',
+            element: (
+              <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
+                <Propietarios />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/recaudos',
+            element: (
+              <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
+                <Recaudos />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/cartera',
+            element: (
+              <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
+                <Cartera />
+              </RequiereRol>
+            ),
+          },
           {
             path: '/personas',
             element: (

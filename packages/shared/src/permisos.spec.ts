@@ -12,7 +12,7 @@ describe('MATRIZ_PERMISOS', () => {
   });
 
   it('ASISTENTE no aprueba en Finanzas ni accede a Jurídica', () => {
-    expect(permisosPorDefecto('ASISTENTE', '02')).toEqual(['crear']);
+    expect(permisosPorDefecto('ASISTENTE', '02')).toEqual(['leer', 'crear']);
     expect(permisosPorDefecto('ASISTENTE', '04')).toEqual([]);
   });
 

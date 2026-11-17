@@ -96,7 +96,7 @@ describe('Administración de usuarios (superadmin)', () => {
     servidor();
     renderApp('/admin/usuarios');
     const fila = (await screen.findByText('Ana Administradora')).closest('tr')!;
-    expect(within(fila).getByText(/Majagua Villa Campestre · Administradora/)).toBeInTheDocument();
+    expect(within(fila).getByText(/Majagua Villa Campestre · Administrador/)).toBeInTheDocument();
     const nora = screen.getByText('Nora Nueva').closest('tr')!;
     expect(within(nora).getByText('Invitación pendiente')).toBeInTheDocument();
   });
@@ -176,7 +176,7 @@ describe('Administración de usuarios (superadmin)', () => {
     await u.selectOptions(within(panel).getByLabelText('Rol'), 'ASISTENTE');
     await u.click(within(panel).getByRole('button', { name: 'Asignar rol' }));
     expect(
-      await within(fila).findByText(/Majagua Villa Campestre · Asistente administrativa/),
+      await within(fila).findByText(/Majagua Villa Campestre · Asistente administrativo/),
     ).toBeInTheDocument();
   });
 

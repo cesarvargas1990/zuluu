@@ -297,4 +297,7 @@
 // Bootstrap: overflow-x:auto fuerza overflow-y:auto y un desborde de 1 px dibuja una barra vertical.
 .table-responsive {
   overflow-y: hidden;
+  // Contiene los textos .visually-hidden (posición absoluta) de las celdas: sin esto escapan del
+  // contenedor con scroll y ensanchan toda la página en pantallas pequeñas.
+  position: relative;
 }

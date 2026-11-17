@@ -55,7 +55,7 @@ describe('Pantalla de ingreso', () => {
     await llenar();
     expect(await screen.findByRole('heading', { name: /Hola, Ana/ })).toBeInTheDocument();
     expect(screen.getAllByText('Condominio Demo Las Palmas').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Asistente administrativa').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Asistente administrativo').length).toBeGreaterThan(0);
   });
 
   it('ingreso con MFA configurado pide el código y luego entra', async () => {
