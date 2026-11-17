@@ -10,4 +10,5 @@
 - [x] Pruebas unitarias del cálculo financiero y de integración de mora, pagos verificados e aislamiento A/B.
 - [x] Typecheck, lint, suite unitaria, suite de integración y build.
 - [x] Ejecutar migraciones locales y validar API, importación, pagos verificados y aislamiento A/B en integración.
-- [ ] Validar visualmente la pantalla y desplegar a producción.
+- [x] Desplegar en producción; health público y ruta SPA responden 200.
+- [ ] Validar visualmente en navegador (se omitió Chrome por instrucción del usuario).
