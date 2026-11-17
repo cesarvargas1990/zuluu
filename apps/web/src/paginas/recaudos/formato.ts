@@ -65,6 +65,7 @@ export const CONCEPTOS: readonly [ConceptoImputacion, string][] = [
   ['INTERESES', 'Intereses de mora'],
   ['CUOTA_EXTRAORDINARIA', 'Cuota extraordinaria'],
   ['OTRO', 'Otro concepto'],
+  ['SALDO_INICIAL', 'Saldo inicial'],
 ];
 export const nombreConcepto = (c: ConceptoImputacion) => CONCEPTOS.find(([k]) => k === c)?.[1] ?? c;
 

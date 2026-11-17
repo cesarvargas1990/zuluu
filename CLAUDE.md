@@ -18,6 +18,7 @@ pnpm db:up && pnpm db:migrate
 docker compose exec -T postgres psql -U zulu -d zulu_admin < scripts/dev-db-roles.sql   # solo la 1ª vez
 pnpm db:seed                  # datos ficticios: *@demo.test / superadmin@zulu.test, clave SEED_PASSWORD
 pnpm dev                      # api :3000 (/api/v1) + web :5173 (proxy /api)
+# si `pnpm dev` falla con ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT: pnpm --parallel --filter @zulu/api --filter @zulu/web dev
 pnpm typecheck && pnpm lint && pnpm test
 pnpm --filter @zulu/api test:integration
 docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en marcha (reinicia datos demo)
@@ -41,6 +42,15 @@ docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en
 
 - API `/api/v1/admin/*` (`apps/api/src/admin/`): `SuperadminGuard` + MFA. Lecturas entre condominios solo con `prisma.comoSuperadmin()` (funciones `app_condominios()` / `app_membresias_todas()` que exigen `app.superadmin`); escrituras por condominio con `withTenant`.
 - Crear usuario ⇒ invitación por correo (`correos.ts`, enlace 72 h). Web: `/admin/usuarios`, `/admin/condominios`.
+
+## Finanzas: recaudos y cartera (REQ-003 y REQ-004, ya implementado)
+
+- **Recaudos** (`apps/api/src/recaudos/`, web `/recaudos`): registro de pagos con soporte, duplicados, verificación con imputación, anulación con motivo e importación desde Excel. Estado y supuestos: `openspec/changes/req003-pagos-recaudos/`.
+- **Cartera** (`apps/api/src/cartera/`, web `/cartera`): obligaciones, libro de movimientos (solo inserción), antigüedad por fecha de corte, gestiones, compromisos, ajustes con aprobación de otra persona, importación de saldos iniciales y reportes Excel/PDF. Estado y supuestos: `docs/requerimientos/REQ-004-estado-implementacion.md`.
+- El saldo nunca se guarda: se calcula con `calcularSaldo` (`cartera.reglas.ts`). Solo un recaudo **verificado** crea movimiento `PAGO`; anularlo crea `REVERSO_PAGO`.
+- Dinero desde texto o Excel: siempre `parsearValor` (`recaudos.reglas.ts`), que entiende el formato colombiano ("580.000"). Fechas "de hoy": `hoyEnBogota()`, nunca `new Date()` (de noche UTC ya es el día siguiente).
+- Permisos del área 02: `leer` consulta · `crear` pagos, gestiones y compromisos · `editar` obligaciones y solicitud de ajustes · `aprobar` verificar/anular pagos, resolver ajustes, aprobar importaciones · `exportar` reportes.
+- El API usa `packages/shared` compilado: tras cambiar la matriz de permisos, `pnpm --filter @zulu/shared build` y reiniciar el API.
 
 ## Producción
 

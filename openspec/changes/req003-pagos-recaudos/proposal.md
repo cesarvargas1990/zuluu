@@ -22,7 +22,7 @@ Registrar los recaudos de forma trazable, asociados a una unidad privada y con s
 ### Excluido
 
 - Pasarela, conexión o conciliación bancaria automática.
-- Cartera, intereses y cuentas de cobro (REQ-004): la imputación registra concepto/periodo/valor; no afecta saldos de cartera porque aún no existen.
+- Intereses y cuentas de cobro. La cartera llegó con REQ-004: al verificar, cada imputación que coincide con una obligación de la unidad (concepto y periodo) reduce su saldo.
 - Contabilidad y comprobantes tributarios.
 
 ## Módulos afectados

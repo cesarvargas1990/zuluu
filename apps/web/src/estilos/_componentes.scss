@@ -301,3 +301,24 @@
   // contenedor con scroll y ensanchan toda la página en pantallas pequeñas.
   position: relative;
 }
+
+// Antigüedad de cartera: tramos intermedios entre el amarillo y el rojo del tema.
+.antiguedad-31 {
+  background-color: $zulu-naranja;
+}
+.antiguedad-61 {
+  background-color: #c8501e;
+}
+.antiguedad-punto {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+// Las cifras de dinero no se parten a mitad de número: se ajusta el tamaño al ancho disponible.
+.kpi .kpi-valor {
+  font-size: clamp(1.15rem, 0.7rem + 1vw, 1.75rem);
+  overflow-wrap: anywhere;
+  white-space: nowrap;
+}

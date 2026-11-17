@@ -5,6 +5,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Table from 'react-bootstrap/Table';
+import { carteraApi, type Obligacion } from '@/api/cartera';
 import type { UnidadPrivada } from '@/api/propietarios';
 import { recaudosApi, type ConceptoImputacion, type RecaudoDetalle } from '@/api/recaudos';
 import { Alerta, Boton, Etiqueta } from '@/componentes/ui';
@@ -385,18 +386,56 @@ function General({
   );
 }
 
-function Imputacion({
+/** Espera las obligaciones abiertas de la unidad para proponer la distribución del pago. */
+function Imputacion(props: PropsSeccion & { unidades: UnidadPrivada[] }) {
+  const { p, permisos } = props;
+  const editable =
+    (p.estado === 'PENDIENTE' || p.estado === 'OBSERVADO') && permisos.aprobar && !!p.unidadId;
+  const cartera = useQuery({
+    queryKey: ['req004', 'cuenta-para-pago', p.unidadId],
+    queryFn: () => carteraApi.estadoDeCuenta(p.unidadId!),
+    enabled: editable,
+    retry: false,
+    staleTime: 0,
+  });
+  if (editable && cartera.isPending)
+    return <p role="status">Consultando la cartera de la unidad…</p>;
+  const abiertas = cartera.data?.obligaciones.filter((o) => Number(o.saldo) > 0) ?? [];
+  return <EditorImputacion {...props} abiertas={abiertas} key={`${p.estado}-${abiertas.length}`} />;
+}
+
+function EditorImputacion({
   p,
   permisos,
   unidades,
   ocupado,
   ejecutar,
-}: PropsSeccion & { unidades: UnidadPrivada[] }) {
+  abiertas,
+}: PropsSeccion & { unidades: UnidadPrivada[]; abiertas: Obligacion[] }) {
   const abierto = p.estado === 'PENDIENTE' || p.estado === 'OBSERVADO';
   const pagoCentavos = Math.round(Number(p.valor) * 100);
   const cuota = unidades.find((u) => u.id === p.unidadId)?.cuotaMensual;
-  const [siguiente, setSiguiente] = useState(1);
+  const [siguiente, setSiguiente] = useState(abiertas.length + 1);
   const [lineas, setLineas] = useState<Linea[]>(() => {
+    if (abiertas.length > 0) {
+      // Con cartera registrada: se propone pagar las obligaciones más antiguas primero.
+      let disponible = pagoCentavos;
+      const propuestas: Linea[] = [];
+      for (const [i, o] of abiertas.entries()) {
+        if (disponible <= 0) break;
+        const saldo = Math.round(Number(o.saldo) * 100);
+        const aplicar = Math.min(saldo, disponible);
+        disponible -= aplicar;
+        propuestas.push({
+          clave: i,
+          concepto: o.concepto,
+          periodo: o.periodo,
+          valorObligacion: enPesos(decimalDe(saldo)),
+          valorAplicado: enPesos(decimalDe(aplicar)),
+        });
+      }
+      return propuestas;
+    }
     const cuotaCentavos = cuota ? Math.round(Number(cuota) * 100) : 0;
     const aplicar = cuotaCentavos > 0 ? Math.min(cuotaCentavos, pagoCentavos) : pagoCentavos;
     return [
@@ -508,8 +547,10 @@ function Imputacion({
     <>
       <p className="small text-body-secondary">
         Distribuya el pago entre las obligaciones que cubre. Lo que no aplique quedará como saldo a
-        favor de la unidad. Los saldos de cartera se actualizarán cuando esté disponible el módulo
-        de cartera.
+        favor de la unidad.{' '}
+        {abiertas.length > 0
+          ? `La unidad tiene ${abiertas.length} ${abiertas.length === 1 ? 'obligación abierta' : 'obligaciones abiertas'} en cartera: se proponen las más antiguas primero. Al verificar, el saldo de cada una baja por el valor aplicado.`
+          : 'La unidad no tiene obligaciones abiertas en cartera: la distribución queda registrada con el pago.'}
       </p>
       <div className="table-responsive">
         <Table className="align-middle">

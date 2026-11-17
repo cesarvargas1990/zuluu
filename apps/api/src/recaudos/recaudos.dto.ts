@@ -12,6 +12,7 @@ const concepto = z.enum([
   'INTERESES',
   'CUOTA_EXTRAORDINARIA',
   'OTRO',
+  'SALDO_INICIAL',
 ]);
 const texto = (max: number) => z.string().trim().max(max).optional().nullable();
 const valor = z

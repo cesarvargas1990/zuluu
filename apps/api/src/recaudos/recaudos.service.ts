@@ -556,6 +556,8 @@ export class RecaudosService {
       });
       if (cambio.count !== 1)
         throw new ConflictException('El pago ya fue revisado por otra persona.');
+      // Mismo bloqueo que usa cartera: evita aplicar dos pagos simultáneos sobre el mismo saldo.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`cartera:${condominioId}`}, 0))`;
       for (const l of calculo.lineas) {
         const obligacion = await tx.obligacion.findFirst({
           where: {
@@ -685,7 +687,8 @@ export class RecaudosService {
               obligacionId: pago.obligacionId,
               tipo: 'REVERSO_PAGO',
               valor: pago.valor,
-              fecha: new Date(),
+              // Fecha en Colombia: de noche, la fecha UTC ya es el día siguiente.
+              fecha: aFecha(hoyEnBogota()),
               recaudoId: id,
               descripcion: `Reverso de pago ${numeroVisible(anterior.numero)}: ${motivo}`,
               creadoPor: usuarioId,

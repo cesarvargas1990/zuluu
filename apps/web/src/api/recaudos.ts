@@ -4,7 +4,12 @@ import type { TipoUnidadPrivada } from './propietarios';
 export type MedioPago = 'TRANSFERENCIA' | 'CONSIGNACION' | 'EFECTIVO' | 'OTRO';
 export type EstadoRecaudo = 'PENDIENTE' | 'VERIFICADO' | 'OBSERVADO' | 'ANULADO';
 export type ConceptoImputacion =
-  'CUOTA_ADMINISTRACION' | 'CUOTA_VENCIDA' | 'INTERESES' | 'CUOTA_EXTRAORDINARIA' | 'OTRO';
+  | 'CUOTA_ADMINISTRACION'
+  | 'CUOTA_VENCIDA'
+  | 'INTERESES'
+  | 'CUOTA_EXTRAORDINARIA'
+  | 'OTRO'
+  | 'SALDO_INICIAL';
 
 /** Los valores en dinero llegan como texto decimal ("580000", "580000.5"). */
 export interface Recaudo {
