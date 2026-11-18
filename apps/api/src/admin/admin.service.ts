@@ -22,6 +22,8 @@ interface FilaCondominio {
   razon_social: string;
   nit: string;
   created_at: Date;
+  grupo_id: string | null;
+  grupo_nombre: string | null;
 }
 interface FilaMembresia {
   membresia_id: string;
@@ -64,29 +66,131 @@ export class AdminService {
       razonSocial: c.razon_social,
       nit: c.nit,
       creadoEn: c.created_at,
+      grupoId: c.grupo_id,
+      grupoNombre: c.grupo_nombre,
     }));
   }
 
-  async crearCondominio(datos: { razonSocial: string; nit: string }) {
+  async crearCondominio(datos: { razonSocial: string; nit: string; grupoId?: string | null }) {
     const id = randomUUID();
+    const grupo = datos.grupoId ? await this.exigirGrupo(datos.grupoId) : null;
     try {
       return await this.prisma.withTenant(id, async (tx) => {
         const c = await tx.condominio.create({
-          data: { id, razonSocial: datos.razonSocial, nit: datos.nit },
+          data: { id, razonSocial: datos.razonSocial, nit: datos.nit, grupoId: grupo?.id ?? null },
         });
         await this.auditoria.registrar(tx, {
           accion: 'condominio.creado',
           objetoTipo: 'condominio',
           objetoId: id,
           condominioId: id,
-          despues: { razonSocial: c.razonSocial, nit: c.nit },
+          despues: { razonSocial: c.razonSocial, nit: c.nit, grupoId: c.grupoId },
         });
-        return { id: c.id, razonSocial: c.razonSocial, nit: c.nit, creadoEn: c.createdAt };
+        return {
+          id: c.id,
+          razonSocial: c.razonSocial,
+          nit: c.nit,
+          creadoEn: c.createdAt,
+          grupoId: c.grupoId,
+          grupoNombre: grupo?.nombre ?? null,
+        };
       });
     } catch (e) {
       if (esDuplicado(e)) throw new ConflictException('Ya existe un condominio con ese NIT.');
       throw e;
     }
+  }
+
+  // ---------- Condominios (agrupadores de copropiedades) ----------
+  async listarGrupos() {
+    const [grupos, conteos] = await Promise.all([
+      this.prisma.grupoCondominio.findMany({ orderBy: { nombre: 'asc' } }),
+      this.prisma.comoSuperadmin(
+        (tx) =>
+          tx.$queryRaw<
+            { grupo_id: string; copropiedades: bigint }[]
+          >`SELECT * FROM app_grupos_conteo()`,
+      ),
+    ]);
+    const por = new Map(conteos.map((c) => [c.grupo_id, Number(c.copropiedades)]));
+    return grupos.map((g) => ({
+      id: g.id,
+      nombre: g.nombre,
+      copropiedades: por.get(g.id) ?? 0,
+      creadoEn: g.createdAt,
+    }));
+  }
+
+  async crearGrupo(nombre: string) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const g = await tx.grupoCondominio.create({ data: { nombre } });
+        await this.auditoria.registrar(tx, {
+          accion: 'grupo.creado',
+          objetoTipo: 'condominio_grupo',
+          objetoId: g.id,
+          actorId: contexto.actual().usuarioId ?? null,
+          despues: { nombre },
+        });
+        return { id: g.id, nombre: g.nombre, copropiedades: 0, creadoEn: g.createdAt };
+      });
+    } catch (e) {
+      if (esDuplicado(e)) throw new ConflictException('Ya existe un condominio con ese nombre.');
+      throw e;
+    }
+  }
+
+  async renombrarGrupo(id: string, nombre: string) {
+    const antes = await this.exigirGrupo(id);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.grupoCondominio.update({ where: { id }, data: { nombre } });
+        if (antes.nombre !== nombre)
+          await this.auditoria.registrar(tx, {
+            accion: 'grupo.renombrado',
+            objetoTipo: 'condominio_grupo',
+            objetoId: id,
+            actorId: contexto.actual().usuarioId ?? null,
+            antes: { nombre: antes.nombre },
+            despues: { nombre },
+          });
+      });
+    } catch (e) {
+      if (esDuplicado(e)) throw new ConflictException('Ya existe un condominio con ese nombre.');
+      throw e;
+    }
+    return { id, nombre };
+  }
+
+  /** Asigna (o quita, con `null`) el condominio al que pertenece una copropiedad. */
+  async asignarGrupo(condominioId: string, grupoId: string | null) {
+    const grupo = grupoId ? await this.exigirGrupo(grupoId) : null;
+    return this.prisma.withTenant(condominioId, async (tx) => {
+      const c = await tx.condominio.findFirst({ where: { id: condominioId } });
+      if (!c) throw new NotFoundException('La copropiedad indicada no existe.');
+      if (c.grupoId !== (grupo?.id ?? null)) {
+        await tx.condominio.update({
+          where: { id: condominioId },
+          data: { grupoId: grupo?.id ?? null },
+        });
+        await this.auditoria.registrar(tx, {
+          accion: 'condominio.grupo_asignado',
+          objetoTipo: 'condominio',
+          objetoId: condominioId,
+          condominioId,
+          actorId: contexto.actual().usuarioId ?? null,
+          antes: { grupoId: c.grupoId },
+          despues: { grupoId: grupo?.id ?? null },
+        });
+      }
+      return { id: condominioId, grupoId: grupo?.id ?? null, grupoNombre: grupo?.nombre ?? null };
+    });
+  }
+
+  private async exigirGrupo(id: string) {
+    const g = await this.prisma.grupoCondominio.findUnique({ where: { id } });
+    if (!g) throw new NotFoundException('El condominio indicado no existe.');
+    return g;
   }
 
   // ---------- Usuarios ----------

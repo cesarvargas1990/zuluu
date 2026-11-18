@@ -6,6 +6,8 @@ export interface MembresiaUsuario {
   condominio_id: string;
   razon_social: string;
   rol: Rol;
+  grupo_id: string | null;
+  grupo_nombre: string | null;
 }
 
 /** Membresías activas del usuario en todos sus condominios (función SECURITY DEFINER acotada). */

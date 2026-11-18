@@ -5,6 +5,9 @@ export interface CondominioDeUsuario {
   condominioId: string;
   razonSocial: string;
   rol: Rol;
+  /** Condominio (agrupador) al que pertenece la copropiedad; null si aún no está agrupada. */
+  grupoId?: string | null;
+  grupoNombre?: string | null;
 }
 
 export interface Yo {

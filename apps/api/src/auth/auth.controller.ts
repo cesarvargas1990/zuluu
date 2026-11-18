@@ -114,6 +114,8 @@ export class AuthController {
         condominioId: m.condominio_id,
         razonSocial: m.razon_social,
         rol: m.rol,
+        grupoId: m.grupo_id,
+        grupoNombre: m.grupo_nombre,
       })),
     };
   }

@@ -40,10 +40,11 @@ export function Inicio() {
                 </div>
               }
             >
-              Como superadministrador puede crear condominios y usuarios, y asignar sus roles.
+              Como superadministrador puede crear condominios, copropiedades y usuarios, y asignar
+              sus roles.
             </EstadoVacio>
           ) : (
-            <EstadoVacio icono="bi-buildings" titulo="No tiene condominios asignados">
+            <EstadoVacio icono="bi-buildings" titulo="No tiene copropiedades asignadas">
               Pida al administrador de su condominio que le asigne un rol.
             </EstadoVacio>
           )}
@@ -74,7 +75,7 @@ export function Inicio() {
       <Row xs={1} sm={2} xl={4} className="g-3 mb-4">
         <Col>
           <KpiCard
-            etiqueta="Condominio"
+            etiqueta={condominioActivo.grupoNombre ? condominioActivo.grupoNombre : 'Copropiedad'}
             valor={<span className="fs-5">{condominioActivo.razonSocial}</span>}
             icono="bi-buildings"
           />

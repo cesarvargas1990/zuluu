@@ -35,12 +35,14 @@ export function RequiereMfaPendiente() {
 
 /** Sesión completa. */
 export function RequiereSesion() {
-  const { estado } = useSesion();
+  const { estado, eleccionPendiente } = useSesion();
   const ubicacion = useLocation();
   if (estado.tipo === 'cargando') return <Cargando />;
   if (estado.tipo === 'anonimo')
     return <Navigate to="/ingresar" replace state={{ desde: ubicacion.pathname }} />;
   if (estado.tipo === 'mfa') return <Navigate to="/mfa" replace />;
+  if (eleccionPendiente && ubicacion.pathname !== '/elegir-condominio')
+    return <Navigate to="/elegir-condominio" replace />;
   return <Outlet />;
 }
 

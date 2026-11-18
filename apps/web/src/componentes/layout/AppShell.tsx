@@ -44,7 +44,7 @@ export function AppShell() {
     ? 'Superadministrador ZULU'
     : condominioActivo
       ? NOMBRE_ROL[condominioActivo.rol]
-      : 'Sin condominio';
+      : 'Sin copropiedad';
 
   return (
     <div className={`app-shell${colapsada ? ' colapsada' : ''}`}>
@@ -89,7 +89,7 @@ export function AppShell() {
           {yo.condominios.length > 1 ? (
             <label className="d-flex align-items-center gap-2 mb-0">
               <i className="bi bi-buildings text-body-secondary" aria-hidden="true" />
-              <span className="visually-hidden">Condominio</span>
+              <span className="visually-hidden">Copropiedad</span>
               <select
                 className="form-select form-select-sm"
                 value={condominioActivo?.condominioId ?? ''}
@@ -97,7 +97,7 @@ export function AppShell() {
               >
                 {yo.condominios.map((c) => (
                   <option key={c.condominioId} value={c.condominioId}>
-                    {c.razonSocial}
+                    {c.grupoNombre ? `${c.grupoNombre} · ${c.razonSocial}` : c.razonSocial}
                   </option>
                 ))}
               </select>

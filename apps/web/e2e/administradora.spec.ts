@@ -7,6 +7,10 @@ test('la administradora agrega una persona, concede Jurídica a la asistente y d
   const email = `e2e-${Date.now()}@demo.test`;
   await ingresar(page, 'administradora@demo.test');
   await configurarMfa(page);
+  await expect(
+    page.getByRole('heading', { name: '¿Con qué copropiedad va a trabajar?' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: /Condominio Demo Las Palmas/ }).click();
   await page.getByRole('link', { name: 'Personas y permisos' }).click();
   await expect(page.getByRole('heading', { name: 'Personas y permisos' })).toBeVisible();
 

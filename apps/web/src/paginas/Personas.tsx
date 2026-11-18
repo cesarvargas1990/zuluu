@@ -79,7 +79,7 @@ export function Personas() {
         await modificar.mutateAsync({ id: confirmacion.membresia.id, cambios: { activo: false } });
         setAviso({
           tono: 'ok',
-          texto: `${confirmacion.membresia.usuario.nombre} ya no tiene acceso a este condominio.`,
+          texto: `${confirmacion.membresia.usuario.nombre} ya no tiene acceso a esta copropiedad.`,
         });
       } else {
         await revocar.mutateAsync(confirmacion.permiso.id);
@@ -93,7 +93,7 @@ export function Personas() {
     <>
       <PageHeader
         titulo="Personas y permisos"
-        descripcion={`Quién trabaja en ${condominioActivo?.razonSocial ?? 'el condominio'} y qué puede hacer.`}
+        descripcion={`Quién trabaja en ${condominioActivo?.razonSocial ?? 'la copropiedad'} y qué puede hacer.`}
         acciones={
           !agregando && (
             <Boton onClick={() => setAgregando(true)}>
@@ -164,7 +164,7 @@ export function Personas() {
       ) : (
         <Card>
           <Table responsive hover className="align-middle mb-0">
-            <caption className="visually-hidden">Personas con acceso al condominio</caption>
+            <caption className="visually-hidden">Personas con acceso a la copropiedad</caption>
             <thead className="table-light">
               <tr>
                 <th scope="col" className="ps-4">

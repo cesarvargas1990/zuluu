@@ -117,7 +117,7 @@ describe('Administración de usuarios (superadmin)', () => {
     await u.click(await screen.findByRole('button', { name: 'Crear usuario' }));
     await u.type(screen.getByLabelText('Nombre completo'), 'Nora Nueva');
     await u.type(screen.getByLabelText('Email'), 'nora@demo.test');
-    await u.selectOptions(screen.getByLabelText('Condominio del rol 1'), 'c1');
+    await u.selectOptions(screen.getByLabelText('Copropiedad del rol 1'), 'c1');
     await u.selectOptions(screen.getByLabelText('Rol 1'), 'CONTADORA');
     await u.click(screen.getByRole('button', { name: 'Crear y enviar invitación' }));
 
@@ -175,7 +175,7 @@ describe('Administración de usuarios (superadmin)', () => {
     const fila = (await screen.findByText('Sin Rol')).closest('tr')!;
     await u.click(within(fila).getByRole('button', { name: 'Roles' }));
     const panel = await screen.findByRole('region', { name: 'Roles de Sin Rol' });
-    await u.selectOptions(within(panel).getByLabelText('Condominio'), 'c1');
+    await u.selectOptions(within(panel).getByLabelText('Copropiedad'), 'c1');
     await u.selectOptions(within(panel).getByLabelText('Rol'), 'ASISTENTE');
     await u.click(within(panel).getByRole('button', { name: 'Asignar rol' }));
     expect(

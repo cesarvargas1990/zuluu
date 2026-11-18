@@ -29,8 +29,11 @@ const crearCondominio = z
   .object({
     razonSocial: z.string().trim().min(3, 'Escriba la razón social').max(200),
     nit: z.string().trim().min(5, 'NIT inválido').max(30),
+    grupoId: z.uuid('Condominio inválido').nullish(),
   })
   .strict();
+const grupo = z.object({ nombre: z.string().trim().min(2, 'Escriba el nombre').max(200) }).strict();
+const asignarGrupo = z.object({ grupoId: z.uuid('Condominio inválido').nullable() }).strict();
 const cambiarMfaGlobal = z
   .object({ activo: z.boolean('Indique si el control está activo') })
   .strict();
@@ -67,6 +70,33 @@ export class AdminController {
     @Body(new ZodPipe(cambiarMfaUsuario)) body: z.infer<typeof cambiarMfaUsuario>,
   ) {
     return this.admin.cambiarMfaUsuario(id, body.politica);
+  }
+
+  /** "Condominio" en pantalla: agrupa varias copropiedades. */
+  @Get('grupos')
+  listarGrupos() {
+    return this.admin.listarGrupos();
+  }
+
+  @Post('grupos')
+  crearGrupo(@Body(new ZodPipe(grupo)) body: z.infer<typeof grupo>) {
+    return this.admin.crearGrupo(body.nombre);
+  }
+
+  @Patch('grupos/:id')
+  renombrarGrupo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(grupo)) body: z.infer<typeof grupo>,
+  ) {
+    return this.admin.renombrarGrupo(id, body.nombre);
+  }
+
+  @Patch('condominios/:id/grupo')
+  asignarGrupo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(asignarGrupo)) body: z.infer<typeof asignarGrupo>,
+  ) {
+    return this.admin.asignarGrupo(id, body.grupoId);
   }
 
   @Get('condominios')

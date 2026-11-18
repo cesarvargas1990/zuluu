@@ -1,8 +1,10 @@
 import type { RouteObject } from 'react-router';
 import { AppShell } from '@/componentes/layout/AppShell';
 import { AdminCondominios } from '@/paginas/admin/AdminCondominios';
+import { AdminGrupos } from '@/paginas/admin/AdminGrupos';
 import { AdminParametros } from '@/paginas/admin/AdminParametros';
 import { AdminUsuarios } from '@/paginas/admin/AdminUsuarios';
+import { ElegirCondominio } from '@/paginas/ElegirCondominio';
 import { Ingresar } from '@/paginas/Ingresar';
 import { Inicio } from '@/paginas/Inicio';
 import { Mfa } from '@/paginas/Mfa';
@@ -40,6 +42,7 @@ export const rutas: RouteObject[] = [
   {
     element: <RequiereSesion />,
     children: [
+      { path: '/elegir-condominio', element: <ElegirCondominio /> },
       {
         element: <AppShell />,
         children: [
@@ -89,6 +92,14 @@ export const rutas: RouteObject[] = [
             element: (
               <RequiereRol roles={[]} superadmin>
                 <AdminParametros />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/admin/grupos',
+            element: (
+              <RequiereRol roles={[]} superadmin>
+                <AdminGrupos />
               </RequiereRol>
             ),
           },

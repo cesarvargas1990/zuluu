@@ -17,6 +17,7 @@ cp .env.example .env && pnpm install
 pnpm db:up && pnpm db:migrate
 docker compose exec -T postgres psql -U zulu -d zulu_admin < scripts/dev-db-roles.sql   # solo la 1ª vez
 pnpm db:seed                  # datos ficticios: *@demo.test / superadmin@zulu.test, clave SEED_PASSWORD
+pnpm --filter @zulu/api db:seed:demo   # propietarios, unidades, cartera y recaudos de prueba (solo local; idempotente)
 pnpm dev                      # api :3000 (/api/v1) + web :5173 (proxy /api)
 # si `pnpm dev` falla con ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT: pnpm --parallel --filter @zulu/api --filter @zulu/web dev
 pnpm typecheck && pnpm lint && pnpm test
@@ -37,6 +38,13 @@ docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en
 - Endpoints de negocio: `@RequierePermiso('<área>', '<acción>')` + header `X-Condominio-Id`; el servicio lee `contexto.actual().condominioId` y usa `prisma.withTenant`.
 - Matriz rol→permisos en `packages/shared/src/permisos.ts` (borrador, validar con ZULU). Superadmin = `usuario.es_superadmin`; datos solo con acceso excepcional (lectura).
 - Auditoría: `AuditoriaService.registrar(tx, evento)` dentro de la misma transacción; nunca incluir secretos.
+
+## Jerarquía multiempresa (condominio → copropiedades)
+
+- **Copropiedad** = la tabla `condominio` de siempre (unidad de aislamiento RLS, `condominio_id` en todo dato). **Condominio** = agrupador nuevo (`condominio_grupo`, global, sin RLS) que reúne varias copropiedades; `condominio.grupo_id` es opcional.
+- Los permisos y roles siguen **por copropiedad** (`membresia`); el condominio solo organiza. `/auth/yo` devuelve `grupoId`/`grupoNombre` por copropiedad.
+- Al iniciar sesión, administradores y quien tenga más de una copropiedad pasan por `/elegir-condominio` (lista agrupada por condominio). Con la sesión abierta no se vuelve a preguntar; se cambia desde el encabezado.
+- Superadmin: `/admin/grupos` (crear/renombrar condominios) y `/admin/condominios` (copropiedades, con su condominio). API `/admin/grupos`, `PATCH /admin/condominios/:id/grupo`. Auditoría: `grupo.creado`, `grupo.renombrado`, `condominio.grupo_asignado`.
 
 ## Control de 2FA (parámetros generales, ya implementado)
 

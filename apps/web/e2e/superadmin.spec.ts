@@ -37,7 +37,7 @@ test('el superadmin crea un usuario con rol; el correo llega y la persona entra 
   await page.getByLabel('Nombre completo').fill('Persona Invitada');
   await page.getByLabel('Email').fill(email);
   await page
-    .getByLabel('Condominio del rol 1', { exact: true })
+    .getByLabel('Copropiedad del rol 1', { exact: true })
     .selectOption({ label: 'Condominio Demo Las Palmas' });
   await page.getByLabel('Rol 1', { exact: true }).selectOption('ASISTENTE');
   await page.getByRole('button', { name: 'Crear y enviar invitación' }).click();

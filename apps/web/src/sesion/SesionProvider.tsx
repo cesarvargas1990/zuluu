@@ -22,6 +22,10 @@ interface ValorSesion {
   estado: EstadoSesion;
   condominioActivo: CondominioDeUsuario | null;
   elegirCondominio: (condominioId: string) => void;
+  /** Tras iniciar sesión hay que escoger el condominio de trabajo (pantalla `/elegir-condominio`). */
+  eleccionPendiente: boolean;
+  /** Fija el condominio de trabajo y da por resuelta la elección del inicio de sesión. */
+  confirmarCondominio: (condominioId: string) => void;
   /** Tras un login exitoso. */
   iniciar: (r: RespuestaLogin) => Promise<void>;
   /** Tras completar MFA: token con sesión elevada. */
@@ -49,6 +53,11 @@ function guardarPreferencia(clave: string, valor: string) {
   }
 }
 
+/** Las administradoras y quien trabaja en varios condominios eligen al iniciar sesión. */
+const debeElegirCondominio = (yo: Yo): boolean =>
+  new Set(yo.condominios.map((c) => c.condominioId)).size > 1 ||
+  yo.condominios.some((c) => c.rol === 'ADMINISTRADORA');
+
 const estadoPara = (yo: Yo): EstadoSesion =>
   yo.mfa.requerido && !yo.mfa.verificado ? { tipo: 'mfa', yo } : { tipo: 'activa', yo };
 
@@ -61,12 +70,14 @@ export function SesionProvider({
 }) {
   const [estado, setEstado] = useState<EstadoSesion>({ tipo: 'cargando' });
   const [elegido, setElegido] = useState<string | null>(null);
+  const [eleccionPendiente, setEleccionPendiente] = useState(false);
   const condominioRef = useRef<string | null>(null);
 
   const terminar = useCallback(
     (aviso?: string) => {
       token.fijar(null);
       setElegido(null);
+      setEleccionPendiente(false);
       setEstado({ tipo: 'anonimo', aviso });
       alSalir?.();
     },
@@ -79,6 +90,7 @@ export function SesionProvider({
     const valido = yo.condominios.find((c) => c.condominioId === preferido) ?? yo.condominios[0];
     setElegido(valido?.condominioId ?? null);
     setEstado(estadoPara(yo));
+    return yo;
   }, []);
 
   useEffect(() => {
@@ -120,9 +132,17 @@ export function SesionProvider({
         guardarPreferencia(claveCondominio(yo.id), id);
         setElegido(id);
       },
+      eleccionPendiente,
+      confirmarCondominio: (id) => {
+        if (!yo) return;
+        guardarPreferencia(claveCondominio(yo.id), id);
+        setElegido(id);
+        setEleccionPendiente(false);
+      },
       iniciar: async (r) => {
         token.fijar(r.accessToken);
-        await cargarYo();
+        const nuevo = await cargarYo();
+        setEleccionPendiente(debeElegirCondominio(nuevo));
       },
       actualizarToken: async (t) => {
         token.fijar(t);
@@ -137,7 +157,7 @@ export function SesionProvider({
         terminar();
       },
     }),
-    [estado, condominioActivo, yo, cargarYo, terminar],
+    [estado, condominioActivo, eleccionPendiente, yo, cargarYo, terminar],
   );
 
   return <Contexto value={valor}>{children}</Contexto>;

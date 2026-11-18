@@ -6,6 +6,16 @@ export interface CondominioAdmin {
   razonSocial: string;
   nit: string;
   creadoEn: string;
+  grupoId?: string | null;
+  grupoNombre?: string | null;
+}
+
+/** "Condominio" en pantalla: agrupa varias copropiedades. */
+export interface GrupoAdmin {
+  id: string;
+  nombre: string;
+  copropiedades: number;
+  creadoEn: string;
 }
 
 export interface RolDeUsuario {
@@ -57,8 +67,21 @@ export const adminApi = {
   cambiarMfaUsuario: (id: string, politica: PoliticaMfa) =>
     api<UsuarioAdmin>(`/admin/usuarios/${id}/mfa`, { metodo: 'PATCH', cuerpo: { politica } }),
   condominios: () => api<CondominioAdmin[]>('/admin/condominios'),
-  crearCondominio: (datos: { razonSocial: string; nit: string }) =>
+  crearCondominio: (datos: { razonSocial: string; nit: string; grupoId?: string | null }) =>
     api<CondominioAdmin>('/admin/condominios', { metodo: 'POST', cuerpo: datos }),
+  grupos: () => api<GrupoAdmin[]>('/admin/grupos'),
+  crearGrupo: (nombre: string) =>
+    api<GrupoAdmin>('/admin/grupos', { metodo: 'POST', cuerpo: { nombre } }),
+  renombrarGrupo: (id: string, nombre: string) =>
+    api<{ id: string; nombre: string }>(`/admin/grupos/${id}`, {
+      metodo: 'PATCH',
+      cuerpo: { nombre },
+    }),
+  asignarGrupo: (condominioId: string, grupoId: string | null) =>
+    api<{ id: string; grupoId: string | null; grupoNombre: string | null }>(
+      `/admin/condominios/${condominioId}/grupo`,
+      { metodo: 'PATCH', cuerpo: { grupoId } },
+    ),
   usuarios: () => api<UsuarioAdmin[]>('/admin/usuarios'),
   crearUsuario: (datos: { nombre: string; email: string; roles: RolNuevo[] }) =>
     api<{ usuario: UsuarioAdmin; correoEnviado: boolean }>('/admin/usuarios', {

@@ -74,7 +74,7 @@ export function AdminUsuarios() {
     <>
       <PageHeader
         titulo="Usuarios"
-        descripcion="Cree cuentas, envíe la invitación de primer ingreso y asigne roles por condominio."
+        descripcion="Cree cuentas, envíe la invitación de primer ingreso y asigne roles por copropiedad."
         acciones={
           !creando && (
             <Boton
@@ -358,11 +358,11 @@ function FormCrearUsuario({
           </Col>
         </Row>
 
-        <h3 className="h6 mt-4 mb-2">Roles por condominio</h3>
+        <h3 className="h6 mt-4 mb-2">Roles por copropiedad</h3>
         {condominios.length === 0 ? (
           <p className="small text-body-secondary">
-            Aún no hay condominios. Puede crear el usuario sin rol y asignarlo después, o{' '}
-            <Link to="/admin/condominios">crear un condominio</Link>.
+            Aún no hay copropiedades. Puede crear el usuario sin rol y asignarlo después, o{' '}
+            <Link to="/admin/condominios">crear una copropiedad</Link>.
           </p>
         ) : (
           <div className="d-flex flex-column gap-2">
@@ -370,8 +370,8 @@ function FormCrearUsuario({
               <Row key={i} className="g-2 align-items-end">
                 <Col sm={6}>
                   <Selector
-                    etiqueta="Condominio"
-                    aria-label={`Condominio del rol ${i + 1}`}
+                    etiqueta="Copropiedad"
+                    aria-label={`Copropiedad del rol ${i + 1}`}
                     value={r.condominioId}
                     onChange={(e) => cambiarRol(i, { condominioId: e.target.value })}
                   >
@@ -473,7 +473,7 @@ function PanelRoles({
           <h3 className="h6 mb-2">Roles actuales</h3>
           {usuario.roles.length === 0 ? (
             <p className="small text-body-secondary">
-              Sin roles: la persona puede ingresar pero no verá ningún condominio.
+              Sin roles: la persona puede ingresar pero no verá ninguna copropiedad.
             </p>
           ) : (
             <ul className="list-group">
@@ -543,11 +543,11 @@ function PanelRoles({
                   className="d-flex flex-column gap-3"
                 >
                   <Selector
-                    etiqueta="Condominio"
+                    etiqueta="Copropiedad"
                     value={condominioId}
                     onChange={(e) => setCondominioId(e.target.value)}
                   >
-                    <option value="">Elija un condominio</option>
+                    <option value="">Elija una copropiedad</option>
                     {condominios.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.razonSocial}

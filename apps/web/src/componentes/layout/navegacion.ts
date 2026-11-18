@@ -19,7 +19,7 @@ export interface SeccionMenu {
 export const MENU: SeccionMenu[] = [
   { titulo: 'General', items: [{ ruta: '/', texto: 'Inicio', icono: 'bi-speedometer2' }] },
   {
-    titulo: 'Gestión del condominio',
+    titulo: 'Gestión de la copropiedad',
     items: [
       {
         ruta: '/propietarios',
@@ -63,8 +63,14 @@ export const MENU: SeccionMenu[] = [
         soloSuperadmin: true,
       },
       {
-        ruta: '/admin/condominios',
+        ruta: '/admin/grupos',
         texto: 'Condominios',
+        icono: 'bi-diagram-3',
+        soloSuperadmin: true,
+      },
+      {
+        ruta: '/admin/condominios',
+        texto: 'Copropiedades',
         icono: 'bi-buildings',
         soloSuperadmin: true,
       },
