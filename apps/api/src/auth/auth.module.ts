@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ENV, type Env } from '../config/env';
+import { ParametrosModule } from '../parametros/parametros.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
@@ -12,6 +13,7 @@ import { SesionesService } from './sesiones.service';
 
 @Module({
   imports: [
+    ParametrosModule,
     JwtModule.registerAsync({
       inject: [ENV],
       useFactory: (env: Env) => ({

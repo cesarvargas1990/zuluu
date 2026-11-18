@@ -16,6 +16,14 @@ export interface RolDeUsuario {
   activo: boolean;
 }
 
+export type PoliticaMfa = 'HEREDAR' | 'OBLIGATORIO' | 'NO_REQUERIDO';
+export type MotivoMfa =
+  'GLOBAL_APAGADO' | 'USUARIO_OBLIGATORIO' | 'USUARIO_EXENTO' | 'ROL' | 'NINGUNO';
+
+export interface ParametrosGenerales {
+  mfa: { global: boolean; actualizadoEn: string | null; actualizadoPorNombre: string | null };
+}
+
 export interface UsuarioAdmin {
   id: string;
   email: string;
@@ -25,6 +33,11 @@ export interface UsuarioAdmin {
   /** Aún no definió su contraseña con el enlace de invitación. */
   invitacionPendiente: boolean;
   mfaConfigurado: boolean;
+  /** Ajuste individual guardado. */
+  mfaPolitica: PoliticaMfa;
+  /** Resultado real hoy (control global + ajuste + rol). */
+  mfaRequerido: boolean;
+  mfaMotivo: MotivoMfa;
   creadoEn: string;
   roles: RolDeUsuario[];
 }
@@ -35,6 +48,14 @@ export interface RolNuevo {
 }
 
 export const adminApi = {
+  parametros: () => api<ParametrosGenerales>('/admin/parametros'),
+  cambiarMfaGlobal: (activo: boolean) =>
+    api<ParametrosGenerales['mfa']>('/admin/parametros/mfa', {
+      metodo: 'PATCH',
+      cuerpo: { activo },
+    }),
+  cambiarMfaUsuario: (id: string, politica: PoliticaMfa) =>
+    api<UsuarioAdmin>(`/admin/usuarios/${id}/mfa`, { metodo: 'PATCH', cuerpo: { politica } }),
   condominios: () => api<CondominioAdmin[]>('/admin/condominios'),
   crearCondominio: (datos: { razonSocial: string; nit: string }) =>
     api<CondominioAdmin>('/admin/condominios', { metodo: 'POST', cuerpo: datos }),

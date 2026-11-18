@@ -7,12 +7,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Sesion, Usuario } from '@prisma/client';
-import { ROLES_CON_MFA } from '@zulu/shared';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { ENV, type Env } from '../config/env';
+import { ParametrosService } from '../parametros/parametros.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { membresiasDeUsuario } from './membresias-usuario';
 import { obtenerHashSenuelo, verificarPassword } from './password';
+import { decidirMfa } from './politica-mfa';
 import { SesionesService } from './sesiones.service';
 
 export const MAX_INTENTOS = 5;
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly sesiones: SesionesService,
     private readonly auditoria: AuditoriaService,
     private readonly jwt: JwtService,
+    private readonly parametros: ParametrosService,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -129,10 +131,25 @@ export class AuthService {
     });
   }
 
-  async requiereMfa(usuario: Pick<Usuario, 'id' | 'esSuperadmin'>): Promise<boolean> {
-    if (usuario.esSuperadmin) return true;
-    const membresias = await membresiasDeUsuario(this.prisma, usuario.id);
-    return membresias.some((m) => ROLES_CON_MFA.has(m.rol));
+  /**
+   * ¿Debe este usuario usar verificación en dos pasos? La regla global prima sobre el ajuste
+   * individual (ver `decidirMfa`). Se consulta en cada login y renovación: los cambios aplican de inmediato.
+   */
+  async requiereMfa(
+    usuario: Pick<Usuario, 'id' | 'esSuperadmin' | 'mfaPolitica'>,
+  ): Promise<boolean> {
+    const global = await this.parametros.mfaGlobal();
+    // Solo se consultan los roles cuando la decisión depende de ellos.
+    const dependeDelRol = global && usuario.mfaPolitica === 'HEREDAR' && !usuario.esSuperadmin;
+    const roles = dependeDelRol
+      ? (await membresiasDeUsuario(this.prisma, usuario.id)).map((m) => m.rol)
+      : [];
+    return decidirMfa({
+      global,
+      politica: usuario.mfaPolitica,
+      esSuperadmin: usuario.esSuperadmin,
+      roles,
+    }).requerido;
   }
 
   private emitirAcceso(usuario: Usuario, sesion: Sesion, mfaRequerido: boolean) {

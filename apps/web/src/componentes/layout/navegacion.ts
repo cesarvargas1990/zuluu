@@ -57,6 +57,12 @@ export const MENU: SeccionMenu[] = [
     items: [
       { ruta: '/admin/usuarios', texto: 'Usuarios', icono: 'bi-person-gear', soloSuperadmin: true },
       {
+        ruta: '/admin/parametros',
+        texto: 'Parámetros generales',
+        icono: 'bi-sliders',
+        soloSuperadmin: true,
+      },
+      {
         ruta: '/admin/condominios',
         texto: 'Condominios',
         icono: 'bi-buildings',

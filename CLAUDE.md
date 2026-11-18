@@ -38,6 +38,13 @@ docker compose up -d mailpit && pnpm test:e2e   # Playwright contra API + web en
 - Matriz rol→permisos en `packages/shared/src/permisos.ts` (borrador, validar con ZULU). Superadmin = `usuario.es_superadmin`; datos solo con acceso excepcional (lectura).
 - Auditoría: `AuditoriaService.registrar(tx, evento)` dentro de la misma transacción; nunca incluir secretos.
 
+## Control de 2FA (parámetros generales, ya implementado)
+
+- Pantalla `/admin/parametros` (solo superadmin) y API `/admin/parametros`, `PATCH /admin/parametros/mfa`, `PATCH /admin/usuarios/:id/mfa`.
+- **La regla global prima** (`apps/api/src/auth/politica-mfa.ts`, `decidirMfa`): con el control global apagado nadie necesita 2FA, aunque un usuario lo tenga "Exigir siempre". Encendido, decide el ajuste individual (`usuario.mfa_politica`): `OBLIGATORIO`, `NO_REQUERIDO` o `HEREDAR` (sin ajuste: la regla por rol de siempre, `ROLES_CON_MFA` + superadmin).
+- El global vive en `parametro_sistema` (clave `mfa_global`, de fábrica **encendido**; si falta, se asume encendido). Se evalúa en cada login y renovación (`AuthService.requiereMfa`); las sesiones abiertas lo toman al renovar el token (máx. 15 min).
+- Cada cambio se audita (`parametros.mfa_global_cambiado`, `usuario.mfa_politica_cambiada`). Pruebas: `test/parametros-mfa.int.spec.ts`; las que cambian el global lo restauran al terminar.
+
 ## Consola de superadmin (ya implementado)
 
 - API `/api/v1/admin/*` (`apps/api/src/admin/`): `SuperadminGuard` + MFA. Lecturas entre condominios solo con `prisma.comoSuperadmin()` (funciones `app_condominios()` / `app_membresias_todas()` que exigen `app.superadmin`); escrituras por condominio con `withTenant`.

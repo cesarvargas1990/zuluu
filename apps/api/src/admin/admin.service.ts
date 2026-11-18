@@ -9,8 +9,10 @@ import { Prisma } from '@prisma/client';
 import type { Rol } from '@zulu/shared';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { RecuperacionService } from '../auth/recuperacion.service';
+import { decidirMfa, type PoliticaMfa } from '../auth/politica-mfa';
 import { SesionesService } from '../auth/sesiones.service';
 import { contexto } from '../contexto/contexto-solicitud';
+import { ParametrosService } from '../parametros/parametros.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const NO_ENCONTRADO = 'Recurso no encontrado.';
@@ -49,6 +51,7 @@ export class AdminService {
     private readonly auditoria: AuditoriaService,
     private readonly recuperacion: RecuperacionService,
     private readonly sesiones: SesionesService,
+    private readonly parametros: ParametrosService,
   ) {}
 
   // ---------- Condominios ----------
@@ -88,7 +91,8 @@ export class AdminService {
 
   // ---------- Usuarios ----------
   async listarUsuarios() {
-    const [usuarios, membresias] = await Promise.all([
+    const [global, usuarios, membresias] = await Promise.all([
+      this.parametros.mfaGlobal(),
       this.prisma.usuario.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
@@ -99,6 +103,7 @@ export class AdminService {
           esSuperadmin: true,
           passwordHash: true,
           mfaActivadoEn: true,
+          mfaPolitica: true,
           createdAt: true,
         },
       }),
@@ -110,8 +115,38 @@ export class AdminService {
       this.vistaUsuario(
         u,
         membresias.filter((m) => m.usuario_id === u.id),
+        global,
       ),
     );
+  }
+
+  // ---------- Parámetros generales ----------
+  async obtenerParametros() {
+    return { mfa: await this.parametros.obtenerMfa() };
+  }
+
+  async cambiarMfaGlobal(activo: boolean) {
+    return this.parametros.cambiarMfaGlobal(activo, contexto.actual().usuarioId ?? null);
+  }
+
+  /** Ajuste individual de 2FA. Se guarda aunque el control global esté apagado, pero entonces no se aplica. */
+  async cambiarMfaUsuario(id: string, politica: PoliticaMfa) {
+    const antes = await this.prisma.usuario.findUnique({ where: { id } });
+    if (!antes) throw new NotFoundException(NO_ENCONTRADO);
+    if (antes.mfaPolitica !== politica) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.usuario.update({ where: { id }, data: { mfaPolitica: politica } });
+        await this.auditoria.registrar(tx, {
+          accion: 'usuario.mfa_politica_cambiada',
+          objetoTipo: 'usuario',
+          objetoId: id,
+          antes: { politica: antes.mfaPolitica },
+          despues: { politica },
+        });
+      });
+    }
+    const [vista] = (await this.listarUsuarios()).filter((u) => u.id === id);
+    return vista;
   }
 
   async crearUsuario(datos: { nombre: string; email: string; roles: RolAsignado[] }) {
@@ -240,10 +275,18 @@ export class AdminService {
       esSuperadmin: boolean;
       passwordHash: string | null;
       mfaActivadoEn: Date | null;
+      mfaPolitica: PoliticaMfa;
       createdAt: Date;
     },
     membresias: FilaMembresia[],
+    global: boolean,
   ) {
+    const decision = decidirMfa({
+      global,
+      politica: u.mfaPolitica,
+      esSuperadmin: u.esSuperadmin,
+      roles: membresias.filter((m) => m.activo).map((m) => m.rol),
+    });
     return {
       id: u.id,
       email: u.email,
@@ -252,6 +295,11 @@ export class AdminService {
       esSuperadmin: u.esSuperadmin,
       invitacionPendiente: !u.passwordHash,
       mfaConfigurado: !!u.mfaActivadoEn,
+      /** Ajuste individual guardado. */
+      mfaPolitica: u.mfaPolitica,
+      /** Resultado real hoy, considerando el control global y el rol. */
+      mfaRequerido: decision.requerido,
+      mfaMotivo: decision.motivo,
       creadoEn: u.createdAt,
       roles: membresias.map((m) => ({
         membresiaId: m.membresia_id,

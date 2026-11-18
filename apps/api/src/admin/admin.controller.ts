@@ -31,6 +31,12 @@ const crearCondominio = z
     nit: z.string().trim().min(5, 'NIT inválido').max(30),
   })
   .strict();
+const cambiarMfaGlobal = z
+  .object({ activo: z.boolean('Indique si el control está activo') })
+  .strict();
+const cambiarMfaUsuario = z
+  .object({ politica: z.enum(['HEREDAR', 'OBLIGATORIO', 'NO_REQUERIDO'], 'Opción no válida') })
+  .strict();
 const estadoUsuario = z.object({ activo: z.boolean() }).strict();
 const modificarMembresia = z
   .object({ condominioId: z.uuid(), rol: z.enum(ROLES).optional(), activo: z.boolean().optional() })
@@ -42,6 +48,26 @@ const modificarMembresia = z
 @UseGuards(SuperadminGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
+
+  @Get('parametros')
+  parametros() {
+    return this.admin.obtenerParametros();
+  }
+
+  /** Control global de la verificación en dos pasos: apagado, nadie la necesita. */
+  @Patch('parametros/mfa')
+  cambiarMfaGlobal(@Body(new ZodPipe(cambiarMfaGlobal)) body: z.infer<typeof cambiarMfaGlobal>) {
+    return this.admin.cambiarMfaGlobal(body.activo);
+  }
+
+  /** Ajuste individual; solo se aplica si el control global está encendido. */
+  @Patch('usuarios/:id/mfa')
+  cambiarMfaUsuario(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(cambiarMfaUsuario)) body: z.infer<typeof cambiarMfaUsuario>,
+  ) {
+    return this.admin.cambiarMfaUsuario(id, body.politica);
+  }
 
   @Get('condominios')
   listarCondominios() {

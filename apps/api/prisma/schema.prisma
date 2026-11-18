@@ -82,6 +82,7 @@ model Usuario {
   /// TOTP cifrado AES-256-GCM (iv.tag.datos en base64). Nunca en claro.
   mfaSecretoCifrado String?   @map("mfa_secreto_cifrado")
   mfaActivadoEn     DateTime? @map("mfa_activado_en") @db.Timestamptz(3)
+  mfaPolitica       PoliticaMfaUsuario @default(HEREDAR) @map("mfa_politica")
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -129,6 +130,14 @@ model Auditoria {
 
   @@index([condominioId, createdAt])
   @@map("auditoria")
+}
+
+/// Ajuste individual de la verificación en dos pasos. Solo aplica si el control global está encendido.
+enum PoliticaMfaUsuario {
+  /// Sin ajuste: rige la regla por rol de siempre.
+  HEREDAR
+  OBLIGATORIO
+  NO_REQUERIDO
 }
 
 enum Accion {
@@ -666,4 +675,15 @@ model ImportacionCartera {
 
   @@index([condominioId, estado, creadaEn])
   @@map("importacion_cartera")
+}
+
+/// Parámetros generales del sistema (globales, no son datos de un condominio: sin RLS).
+/// Solo los cambia el superadministrador, siempre con auditoría.
+model ParametroSistema {
+  clave          String   @id @db.VarChar(80)
+  valor          Json
+  actualizadoPor String?  @map("actualizado_por") @db.Uuid
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("parametro_sistema")
 }

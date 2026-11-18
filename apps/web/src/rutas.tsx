@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router';
 import { AppShell } from '@/componentes/layout/AppShell';
 import { AdminCondominios } from '@/paginas/admin/AdminCondominios';
+import { AdminParametros } from '@/paginas/admin/AdminParametros';
 import { AdminUsuarios } from '@/paginas/admin/AdminUsuarios';
 import { Ingresar } from '@/paginas/Ingresar';
 import { Inicio } from '@/paginas/Inicio';
@@ -80,6 +81,14 @@ export const rutas: RouteObject[] = [
             element: (
               <RequiereRol roles={[]} superadmin>
                 <AdminUsuarios />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/admin/parametros',
+            element: (
+              <RequiereRol roles={[]} superadmin>
+                <AdminParametros />
               </RequiereRol>
             ),
           },
