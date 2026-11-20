@@ -45,6 +45,11 @@ export const MENU: SeccionMenu[] = [
         icono: 'bi-receipt-cutoff',
         roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
       },
+      {
+        ruta: '/ambiental',
+        texto: 'Gestión ambiental y aguas',
+        icono: 'bi-droplet-half',
+      },
     ],
   },
   {

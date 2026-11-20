@@ -47,6 +47,28 @@ enum EstadoImportacionPropietarios {
   RECHAZADA
 }
 
+enum EstadoProcesoAmbiental {
+  POR_VERIFICAR
+  SOLICITADO
+  RADICADO
+  REQUERIDO
+  PRORROGADO
+  EN_TRAMITE
+  APROBADO
+  NEGADO
+  DESISTIDO
+  CERRADO
+}
+
+enum EstadoObligacionAmbiental {
+  PENDIENTE_VALIDAR
+  ABIERTA
+  EN_CURSO
+  CUMPLIDA
+  VENCIDA
+  CANCELADA
+}
+
 enum EstadoPeriodoCobro {
   CONFIGURADO
   BORRADORES_GENERADOS
@@ -92,6 +114,7 @@ model Condominio {
   conceptosCobro        ConceptoCobro[]
   cuentasCobro          CuentaCobro[]
   enviosCuentaCobro     EnvioCuentaCobro[]
+  procesosAmbientales   ProcesoAmbiental[]
   grupo                 GrupoCondominio?          @relation(fields: [grupoId], references: [id])
 
   @@index([grupoId])
@@ -606,6 +629,183 @@ model Obligacion {
   @@index([condominioId, unidadId, periodo])
   @@index([condominioId, fechaVencimiento])
   @@map("obligacion")
+}
+
+/// Uno de los seis expedientes hídricos independientes del REQ-007.
+model ProcesoAmbiental {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  condominioId             String                 @map("condominio_id") @db.Uuid
+  codigo                   String                 @db.VarChar(10)
+  titulo                   String                 @db.VarChar(200)
+  autoridad                String?                @db.VarChar(160)
+  numeroExpediente         String?                @map("numero_expediente") @db.VarChar(120)
+  radicado                 String?                @db.VarChar(120)
+  objeto                   String?                @db.VarChar(2000)
+  antecedente              String?                @db.VarChar(2000)
+  proximoPaso              String?                @map("proximo_paso") @db.VarChar(1000)
+  estadoJuridico           EstadoProcesoAmbiental @default(POR_VERIFICAR) @map("estado_juridico")
+  estadoTecnico            EstadoProcesoAmbiental @default(POR_VERIFICAR) @map("estado_tecnico")
+  prioridad                String                 @default("MEDIA") @db.VarChar(20)
+  responsable              String?                @db.VarChar(180)
+  fechaExpedicion          DateTime?              @map("fecha_expedicion") @db.Date
+  fechaRecepcion           DateTime?              @map("fecha_recepcion") @db.Date
+  fechaNotificacion        DateTime?              @map("fecha_notificacion") @db.Date
+  notificacionVerificada   Boolean                @default(false) @map("notificacion_verificada")
+  plazoDias                Int?                   @map("plazo_dias")
+  metodoComputo            String?                @map("metodo_computo") @db.VarChar(300)
+  fechaVencimientoValidada DateTime?              @map("fecha_vencimiento_validada") @db.Date
+  vencimientoVerificado    Boolean                @default(false) @map("vencimiento_verificado")
+  costoEstimado            Decimal?               @map("costo_estimado") @db.Decimal(18, 2)
+  creadoPor                String                 @map("creado_por") @db.Uuid
+  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  condominio             Condominio                      @relation(fields: [condominioId], references: [id])
+  actuaciones            ActuacionAmbiental[]
+  obligaciones           ObligacionAmbiental[]
+  documentos             DocumentoAmbiental[]
+  documentosRelacionados RelacionDocumentoAmbiental[]
+  finanzas               MovimientoFinancieroAmbiental[]
+  relacionesDesde        RelacionProcesoAmbiental[]      @relation("ProcesoOrigen")
+  relacionesHacia        RelacionProcesoAmbiental[]      @relation("ProcesoDestino")
+
+  @@unique([condominioId, codigo])
+  @@unique([condominioId, id])
+  @@index([condominioId, estadoJuridico, prioridad])
+  @@index([condominioId, radicado])
+  @@map("proceso_ambiental")
+}
+
+/// Actuaciones append-only: el historial fuente no se reemplaza.
+model ActuacionAmbiental {
+  id                String    @id @default(uuid()) @db.Uuid
+  condominioId      String    @map("condominio_id") @db.Uuid
+  procesoId         String    @map("proceso_id") @db.Uuid
+  asunto            String    @db.VarChar(240)
+  tipo              String    @db.VarChar(60)
+  entidad           String?   @db.VarChar(160)
+  radicado          String?   @db.VarChar(120)
+  descripcion       String    @db.VarChar(4000)
+  fechaExpedicion   DateTime? @map("fecha_expedicion") @db.Date
+  fechaRecepcion    DateTime? @map("fecha_recepcion") @db.Date
+  fechaNotificacion DateTime? @map("fecha_notificacion") @db.Date
+  estado            String    @default("PENDIENTE_VERIFICACION") @db.VarChar(40)
+  responsable       String?   @db.VarChar(180)
+  creadoPor         String    @map("creado_por") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proceso    ProcesoAmbiental     @relation(fields: [condominioId, procesoId], references: [condominioId, id])
+  documentos DocumentoAmbiental[]
+
+  @@unique([condominioId, id])
+  @@index([condominioId, procesoId, createdAt])
+  @@index([condominioId, radicado])
+  @@map("actuacion_ambiental")
+}
+
+model ObligacionAmbiental {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  condominioId         String                    @map("condominio_id") @db.Uuid
+  procesoId            String                    @map("proceso_id") @db.Uuid
+  titulo               String                    @db.VarChar(240)
+  descripcion          String?                   @db.VarChar(2000)
+  responsable          String?                   @db.VarChar(180)
+  estado               EstadoObligacionAmbiental @default(PENDIENTE_VALIDAR)
+  fechaNotificacion    DateTime?                 @map("fecha_notificacion") @db.Date
+  notificacionValidada Boolean                   @default(false) @map("notificacion_validada")
+  plazoDias            Int?                      @map("plazo_dias")
+  fechaVencimiento     DateTime?                 @map("fecha_vencimiento") @db.Date
+  vencimientoValidado  Boolean                   @default(false) @map("vencimiento_validado")
+  prioridad            String                    @default("MEDIA") @db.VarChar(20)
+  evidenciaCierre      String?                   @map("evidencia_cierre") @db.VarChar(1000)
+  creadoPor            String                    @map("creado_por") @db.Uuid
+  createdAt            DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  proceso ProcesoAmbiental @relation(fields: [condominioId, procesoId], references: [condominioId, id])
+
+  @@index([condominioId, procesoId, estado])
+  @@index([condominioId, fechaVencimiento])
+  @@map("obligacion_ambiental")
+}
+
+model DocumentoAmbiental {
+  id           String   @id @default(uuid()) @db.Uuid
+  condominioId String   @map("condominio_id") @db.Uuid
+  procesoId    String   @map("proceso_id") @db.Uuid
+  actuacionId  String?  @map("actuacion_id") @db.Uuid
+  nombre       String   @db.VarChar(180)
+  tipo         String   @db.VarChar(80)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  tamano       Int
+  sha256       String   @db.Char(64)
+  contenido    Bytes    @db.ByteA
+  verificacion String   @default("PENDIENTE_VALIDAR") @db.VarChar(30)
+  creadoPor    String   @map("creado_por") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proceso            ProcesoAmbiental             @relation(fields: [condominioId, procesoId], references: [condominioId, id])
+  actuacion          ActuacionAmbiental?          @relation(fields: [condominioId, actuacionId], references: [condominioId, id])
+  relacionesProcesos RelacionDocumentoAmbiental[]
+
+  @@unique([condominioId, id])
+  @@index([condominioId, procesoId, createdAt])
+  @@map("documento_ambiental")
+}
+
+/// Vínculos secundarios; el documento conserva su expediente principal y un solo original.
+model RelacionDocumentoAmbiental {
+  id           String   @id @default(uuid()) @db.Uuid
+  condominioId String   @map("condominio_id") @db.Uuid
+  documentoId  String   @map("documento_id") @db.Uuid
+  procesoId    String   @map("proceso_id") @db.Uuid
+  motivo       String   @db.VarChar(500)
+  creadoPor    String   @map("creado_por") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  documento DocumentoAmbiental @relation(fields: [condominioId, documentoId], references: [condominioId, id])
+  proceso   ProcesoAmbiental   @relation(fields: [condominioId, procesoId], references: [condominioId, id])
+
+  @@unique([condominioId, documentoId, procesoId])
+  @@index([condominioId, procesoId])
+  @@map("relacion_documento_ambiental")
+}
+
+model RelacionProcesoAmbiental {
+  id           String   @id @default(uuid()) @db.Uuid
+  condominioId String   @map("condominio_id") @db.Uuid
+  origenId     String   @map("origen_id") @db.Uuid
+  destinoId    String   @map("destino_id") @db.Uuid
+  motivo       String   @db.VarChar(500)
+  creadoPor    String   @map("creado_por") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  origen  ProcesoAmbiental @relation("ProcesoOrigen", fields: [condominioId, origenId], references: [condominioId, id])
+  destino ProcesoAmbiental @relation("ProcesoDestino", fields: [condominioId, destinoId], references: [condominioId, id])
+
+  @@unique([condominioId, origenId, destinoId])
+  @@index([condominioId, destinoId])
+  @@map("relacion_proceso_ambiental")
+}
+
+model MovimientoFinancieroAmbiental {
+  id           String    @id @default(uuid()) @db.Uuid
+  condominioId String    @map("condominio_id") @db.Uuid
+  procesoId    String    @map("proceso_id") @db.Uuid
+  tipo         String    @db.VarChar(30)
+  concepto     String    @db.VarChar(240)
+  valor        Decimal   @db.Decimal(18, 2)
+  fecha        DateTime? @db.Date
+  referencia   String?   @db.VarChar(120)
+  estado       String    @default("PENDIENTE_CONCILIACION") @db.VarChar(40)
+  nota         String?   @db.VarChar(1000)
+  creadoPor    String    @map("creado_por") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proceso ProcesoAmbiental @relation(fields: [condominioId, procesoId], references: [condominioId, id])
+
+  @@index([condominioId, procesoId, createdAt])
+  @@map("movimiento_financiero_ambiental")
 }
 
 /// Libro de cartera, solo se agrega: cargos, pagos verificados, reversos, ajustes y créditos aplicados.

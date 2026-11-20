@@ -16,6 +16,7 @@ import { Propietarios } from '@/paginas/Propietarios';
 import { Recaudos } from '@/paginas/Recaudos';
 import { Cartera } from '@/paginas/Cartera';
 import { CuentasCobro } from '@/paginas/CuentasCobro';
+import { Ambiental } from '@/paginas/Ambiental';
 import { Restablecer } from '@/paginas/Restablecer';
 import {
   RequiereAnonimo,
@@ -77,6 +78,14 @@ export const rutas: RouteObject[] = [
             element: (
               <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
                 <CuentasCobro />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/ambiental',
+            element: (
+              <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA', 'ASESOR_JURIDICO', 'OPERACIONES', 'CONSEJO']}>
+                <Ambiental />
               </RequiereRol>
             ),
           },

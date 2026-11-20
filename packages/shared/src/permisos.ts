@@ -42,7 +42,7 @@ export const MATRIZ_PERMISOS: Readonly<Record<Rol, MatrizRol>> = {
   },
   ASESOR_JURIDICO: { '04': ['leer', 'crear', 'editar', 'exportar'], '03': LCE, '02': L },
   OPERACIONES: { '05': LCE, '06': LC, '07': LC },
-  CONSEJO: {},
+  CONSEJO: { '06': ['leer', 'exportar'] },
 };
 
 /** Roles que exigen MFA (además del superadministrador ZULU). */
