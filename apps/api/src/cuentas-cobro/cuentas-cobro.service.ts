@@ -126,7 +126,6 @@ export class CuentasCobroService {
           conceptos: {
             create: dto.conceptos.map((x) => ({
               id: randomUUID(),
-              condominioId,
               nombre: x.nombre,
               descripcion: x.descripcion,
               creadoPor: usuarioId,
