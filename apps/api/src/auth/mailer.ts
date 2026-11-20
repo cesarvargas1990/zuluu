@@ -7,6 +7,7 @@ export interface Correo {
   asunto: string;
   texto: string;
   html?: string;
+  adjuntos?: { nombre: string; mimeType: string; contenido: Buffer }[];
 }
 
 export abstract class Mailer {
@@ -31,13 +32,18 @@ export class SmtpMailer extends Mailer {
     });
   }
 
-  async enviar({ para, asunto, texto, html }: Correo) {
+  async enviar({ para, asunto, texto, html, adjuntos }: Correo) {
     await this.transporte.sendMail({
       from: this.env.MAIL_FROM,
       to: para,
       subject: asunto,
       text: texto,
       html,
+      attachments: adjuntos?.map((a) => ({
+        filename: a.nombre,
+        contentType: a.mimeType,
+        content: a.contenido,
+      })),
     });
   }
 }

@@ -39,6 +39,12 @@ export const MENU: SeccionMenu[] = [
         icono: 'bi-bank',
         roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
       },
+      {
+        ruta: '/cuentas-cobro',
+        texto: 'Cuentas de cobro',
+        icono: 'bi-receipt-cutoff',
+        roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA'],
+      },
     ],
   },
   {

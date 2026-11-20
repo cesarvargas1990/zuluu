@@ -16,6 +16,7 @@ import { HealthModule } from './health/health.module';
 import { PropietariosModule } from './propietarios/propietarios.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RecaudosModule } from './recaudos/recaudos.module';
+import { CuentasCobroModule } from './cuentas-cobro/cuentas-cobro.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RecaudosModule } from './recaudos/recaudos.module';
     CarteraModule,
     PropietariosModule,
     RecaudosModule,
+    CuentasCobroModule,
   ],
   providers: [
     // Orden de ejecución: límite → identidad → MFA → condominio → permiso. Denegar por defecto.

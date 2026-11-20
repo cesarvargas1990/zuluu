@@ -15,6 +15,7 @@ import { Personas } from '@/paginas/Personas';
 import { Propietarios } from '@/paginas/Propietarios';
 import { Recaudos } from '@/paginas/Recaudos';
 import { Cartera } from '@/paginas/Cartera';
+import { CuentasCobro } from '@/paginas/CuentasCobro';
 import { Restablecer } from '@/paginas/Restablecer';
 import {
   RequiereAnonimo,
@@ -68,6 +69,14 @@ export const rutas: RouteObject[] = [
             element: (
               <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
                 <Cartera />
+              </RequiereRol>
+            ),
+          },
+          {
+            path: '/cuentas-cobro',
+            element: (
+              <RequiereRol roles={['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA']}>
+                <CuentasCobro />
               </RequiereRol>
             ),
           },

@@ -322,3 +322,12 @@
   overflow-wrap: anywhere;
   white-space: nowrap;
 }
+.cuenta-cobro-papel {
+  background: #fff;
+  border: 1px solid #dfe5e1;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(11, 46, 26, 0.06);
+  max-width: 760px;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+}
