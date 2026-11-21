@@ -50,6 +50,12 @@ export const MENU: SeccionMenu[] = [
         texto: 'Gestión ambiental y aguas',
         icono: 'bi-droplet-half',
       },
+      {
+        ruta: '/documentos',
+        texto: 'Gestión documental',
+        icono: 'bi-folder2-open',
+        roles: ['ADMINISTRADORA', 'ASISTENTE', 'CONTADORA', 'ASESOR_JURIDICO', 'OPERACIONES', 'CONSEJO'],
+      },
     ],
   },
   {

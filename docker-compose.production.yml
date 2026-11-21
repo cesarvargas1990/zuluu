@@ -57,9 +57,12 @@ services:
       SMTP_PASS: ${ZULU_SMTP_PASS:-}
       SMTP_SECURE: ${ZULU_SMTP_SECURE:-}
       MAIL_FROM: ${ZULU_MAIL_FROM:-ZULU ADMIN <no-responder@zulu.test>}
+      DOCUMENTOS_STORAGE_PATH: /var/lib/zulu/documentos
     depends_on:
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - zulu_documentos:/var/lib/zulu/documentos
     expose: ['3000']
     restart: unless-stopped
     networks: [zulu_private]
@@ -77,6 +80,7 @@ services:
 
 volumes:
   zulu_pgdata:
+  zulu_documentos:
 
 networks:
   zulu_private:

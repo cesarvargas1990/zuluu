@@ -115,6 +115,8 @@ model Condominio {
   cuentasCobro          CuentaCobro[]
   enviosCuentaCobro     EnvioCuentaCobro[]
   procesosAmbientales   ProcesoAmbiental[]
+  expedientesDigitales  ExpedienteDigital[]
+  documentosDigitales   DocumentoDigital[]
   grupo                 GrupoCondominio?          @relation(fields: [grupoId], references: [id])
 
   @@index([grupoId])
@@ -1018,4 +1020,135 @@ model EnvioCuentaCobro {
 
   @@index([condominioId, cuentaId, createdAt])
   @@map("envio_cuenta_cobro")
+}
+
+/// Expediente digital central, aislado por copropiedad y área documental.
+model ExpedienteDigital {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  area           String   @db.VarChar(2)
+  codigo         String   @db.VarChar(40)
+  titulo         String   @db.VarChar(240)
+  asunto         String?  @db.VarChar(2000)
+  responsable    String?  @db.VarChar(180)
+  propietario    String?  @db.VarChar(180)
+  villa          String?  @db.VarChar(80)
+  estado         String   @default("ABIERTO") @db.VarChar(30)
+  confidencial  Boolean  @default(false)
+  fechaVencimiento DateTime? @map("fecha_vencimiento") @db.Date
+  vencimientoVerificado Boolean @default(false) @map("vencimiento_verificado")
+  creadoPor      String   @map("creado_por") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  condominio     Condominio @relation(fields: [condominioId], references: [id])
+  documentos     DocumentoDigital[]
+  actuaciones    ActuacionDigital[]
+  obligaciones   ObligacionDigital[]
+  compartidos    AccesoDocumento[]
+  @@unique([condominioId, id])
+  @@unique([condominioId, codigo])
+  @@index([condominioId, area, estado])
+  @@index([condominioId, fechaVencimiento])
+  @@map("expediente_digital")
+}
+
+/// Identidad documental: sus versiones conservan cada archivo y checksum.
+model DocumentoDigital {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  expedienteId   String   @map("expediente_id") @db.Uuid
+  nombre         String   @db.VarChar(240)
+  categoria      String   @db.VarChar(100)
+  radicado       String?  @db.VarChar(120)
+  fechaDocumento DateTime? @map("fecha_documento") @db.Date
+  estado         String   @default("PENDIENTE_VALIDAR") @db.VarChar(30)
+  creadoPor      String   @map("creado_por") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  condominio     Condominio @relation(fields: [condominioId], references: [id])
+  expediente     ExpedienteDigital @relation(fields: [condominioId, expedienteId], references: [condominioId, id])
+  versiones      VersionDocumento[]
+  relaciones     RelacionDocumento[]
+  @@unique([condominioId, id])
+  @@index([condominioId, expedienteId, createdAt])
+  @@index([condominioId, radicado])
+  @@map("documento_digital")
+}
+
+model VersionDocumento {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  documentoId    String   @map("documento_id") @db.Uuid
+  numero         Int
+  nombreArchivo  String   @map("nombre_archivo") @db.VarChar(255)
+  mimeType       String   @map("mime_type") @db.VarChar(120)
+  tamano         Int
+  sha256         String   @db.Char(64)
+  rutaPrivada    String   @map("ruta_privada") @db.VarChar(500)
+  textoBusqueda String?  @map("texto_busqueda")
+  creadoPor      String   @map("creado_por") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  documento      DocumentoDigital @relation(fields: [condominioId, documentoId], references: [condominioId, id])
+  @@unique([condominioId, id])
+  @@unique([condominioId, documentoId, numero])
+  @@index([condominioId, sha256])
+  @@map("version_documento")
+}
+
+model ActuacionDigital {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  expedienteId   String   @map("expediente_id") @db.Uuid
+  tipo           String   @db.VarChar(80)
+  descripcion    String   @db.VarChar(2000)
+  radicado       String?  @db.VarChar(120)
+  fechaActuacion DateTime @map("fecha_actuacion") @db.Date
+  creadoPor      String   @map("creado_por") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expediente     ExpedienteDigital @relation(fields: [condominioId, expedienteId], references: [condominioId, id])
+  @@index([condominioId, expedienteId, fechaActuacion])
+  @@map("actuacion_digital")
+}
+
+model ObligacionDigital {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  expedienteId   String   @map("expediente_id") @db.Uuid
+  titulo         String   @db.VarChar(240)
+  responsable    String?  @db.VarChar(180)
+  estado         String   @default("ABIERTA") @db.VarChar(30)
+  fechaVencimiento DateTime? @map("fecha_vencimiento") @db.Date
+  vencimientoVerificado Boolean @default(false) @map("vencimiento_verificado")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expediente     ExpedienteDigital @relation(fields: [condominioId, expedienteId], references: [condominioId, id])
+  @@index([condominioId, expedienteId, fechaVencimiento])
+  @@map("obligacion_digital")
+}
+
+model RelacionDocumento {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  documentoId    String   @map("documento_id") @db.Uuid
+  entidadTipo    String   @map("entidad_tipo") @db.VarChar(40)
+  entidadId      String   @map("entidad_id") @db.Uuid
+  motivo         String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  documento      DocumentoDigital @relation(fields: [condominioId, documentoId], references: [condominioId, id])
+  @@unique([condominioId, documentoId, entidadTipo, entidadId])
+  @@index([condominioId, entidadTipo, entidadId])
+  @@map("relacion_documento")
+}
+
+model AccesoDocumento {
+  id             String   @id @default(uuid()) @db.Uuid
+  condominioId   String   @map("condominio_id") @db.Uuid
+  expedienteId   String   @map("expediente_id") @db.Uuid
+  usuarioId      String   @map("usuario_id") @db.Uuid
+  puedeDescargar Boolean  @default(true) @map("puede_descargar")
+  creadoPor      String   @map("creado_por") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expediente     ExpedienteDigital @relation(fields: [condominioId, expedienteId], references: [condominioId, id])
+  @@unique([condominioId, expedienteId, usuarioId])
+  @@index([condominioId, usuarioId])
+  @@map("acceso_documento")
 }

@@ -18,6 +18,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RecaudosModule } from './recaudos/recaudos.module';
 import { CuentasCobroModule } from './cuentas-cobro/cuentas-cobro.module';
 import { AmbientalModule } from './ambiental/ambiental.module';
+import { DocumentosModule } from './documentos/documentos.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AmbientalModule } from './ambiental/ambiental.module';
     RecaudosModule,
     CuentasCobroModule,
     AmbientalModule,
+    DocumentosModule,
   ],
   providers: [
     // Orden de ejecución: límite → identidad → MFA → condominio → permiso. Denegar por defecto.
