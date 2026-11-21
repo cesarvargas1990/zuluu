@@ -3,7 +3,7 @@
 ## Requisitos
 
 ### Requisito: Expedientes digitales
-El sistema DEBE mantener expedientes separados por condominio y área, con nombre, asunto, responsable, estado y fechas. Un documento nuevo DEBE quedar asociado a un expediente.
+El sistema DEBE mantener expedientes separados por condominio y área, con nombre, asunto, responsable, estado y fechas. Responsable, propietario y unidad DEBEN seleccionarse de catálogos de la copropiedad y guardarse como relaciones a sus registros; un documento nuevo DEBE quedar asociado a un expediente.
 
 ### Requisito: Originales y versiones
 El sistema DEBE preservar cada binario original, calcular SHA-256 y crear una versión nueva al sustituir un archivo; NUNCA sobrescribir ni borrar una versión probatoria mediante una operación ordinaria.

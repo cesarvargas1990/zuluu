@@ -21,18 +21,29 @@ export function Documentos() {
   const { condominioActivo } = useSesion(); const queryClient = useQueryClient();
   const [busqueda, setBusqueda] = useState(''); const [area, setArea] = useState(''); const [seleccion, setSeleccion] = useState('');
   const [error, setError] = useState(''); const [archivo, setArchivo] = useState<File | null>(null); const [versionArchivo, setVersionArchivo] = useState<File | null>(null);
-  const [crear, setCrear] = useState(false);
+  const [crear, setCrear] = useState(false); const [propietarioId, setPropietarioId] = useState(''); const [unidadId, setUnidadId] = useState('');
   const permisos = useMemo(() => condominioActivo ? permisosPorDefecto(condominioActivo.rol, (area || '01') as keyof typeof AREAS) : [], [condominioActivo, area]);
   const clave = ['documentos', condominioActivo?.condominioId] as const;
   const lista = useQuery({ queryKey: [...clave, busqueda, area], queryFn: () => documentosApi.buscar(busqueda, area) });
+  const catalogos = useQuery({ queryKey: [...clave, 'catalogos'], queryFn: documentosApi.catalogos, enabled: crear });
   const detalle = useQuery({ queryKey: [...clave, 'detalle', seleccion], queryFn: () => documentosApi.detalle(seleccion), enabled: !!seleccion });
   const refrescar = async () => { await queryClient.invalidateQueries({ queryKey: clave }); if (seleccion) await queryClient.invalidateQueries({ queryKey: [...clave, 'detalle', seleccion] }); };
-  const mutation = useMutation({ mutationFn: (fn: () => Promise<unknown>) => fn(), onSuccess: async () => { setError(''); await refrescar(); }, onError: (e) => setError(mensajeError(e)) });
+  const mutation = useMutation({ mutationFn: (fn: () => Promise<unknown>) => fn(), onSuccess: async () => { setError(''); setCrear(false); setPropietarioId(''); setUnidadId(''); await refrescar(); }, onError: (e) => setError(mensajeError(e)) });
   const abrir = (id: string) => { setSeleccion(id); setCrear(false); setError(''); };
+  const propietariosDisponibles = useMemo(() => {
+    const propietarios = catalogos.data?.propietarios ?? [];
+    const unidad = catalogos.data?.unidades.find((u) => u.id === unidadId);
+    return unidad ? propietarios.filter((p) => unidad.propietarios.some((actual) => actual.id === p.id)) : propietarios;
+  }, [catalogos.data, unidadId]);
+  const unidadesDisponibles = useMemo(() => {
+    const unidades = catalogos.data?.unidades ?? [];
+    return propietarioId ? unidades.filter((u) => u.propietarios.some((p) => p.id === propietarioId)) : unidades;
+  }, [catalogos.data, propietarioId]);
 
   const altaExpediente = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const data = new FormData(e.currentTarget);
     const dto: Record<string, unknown> = Object.fromEntries(data.entries()); dto.confidencial = data.get('confidencial') === 'on'; dto.vencimientoVerificado = data.get('vencimientoVerificado') === 'on';
+    for (const id of ['responsableId', 'propietarioId', 'unidadId']) if (dto[id] === '') delete dto[id];
     mutation.mutate(() => documentosApi.crearExpediente(dto));
   };
   const cargar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,20 +64,20 @@ export function Documentos() {
   if (seleccion && detalle.isLoading) return <main className="container-fluid px-3 px-xl-4 py-4"><p role="status">Abriendo expediente...</p></main>;
 
   return <main className="container-fluid px-3 px-xl-4 py-4">
-    <PageHeader titulo="Gestión documental" descripcion="Expedientes digitales, búsqueda autorizada, versiones y seguimiento de obligaciones de la copropiedad." acciones={<div className="d-flex flex-wrap gap-2"><Button variant="outline-primary" onClick={()=>void reporte()}><i className="bi bi-file-earmark-pdf me-2" aria-hidden="true"/>Informe consolidado</Button><Button onClick={() => { setCrear(!crear); setSeleccion(''); }}><i className="bi bi-folder-plus me-2" aria-hidden="true"/>Nuevo expediente</Button></div>} />
+    <PageHeader titulo="Gestión documental" descripcion="Expedientes digitales, búsqueda autorizada, versiones y seguimiento de obligaciones de la copropiedad." acciones={<div className="d-flex flex-wrap gap-2"><Button variant="outline-primary" onClick={()=>void reporte()}><i className="bi bi-file-earmark-pdf me-2" aria-hidden="true"/>Informe consolidado</Button><Button onClick={() => { setCrear(!crear); setSeleccion(''); setPropietarioId(''); setUnidadId(''); }}><i className="bi bi-folder-plus me-2" aria-hidden="true"/>Nuevo expediente</Button></div>} />
     {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-    {crear && <Card className="shadow-sm mb-3"><Card.Body><h2 className="h5">Crear expediente</h2><Form onSubmit={altaExpediente} className="row g-3">
+    {crear && <Card className="shadow-sm mb-3"><Card.Body><h2 className="h5">Crear expediente</h2>{catalogos.isLoading ? <p role="status">Cargando áreas, propietarios, unidades y responsables...</p> : catalogos.isError ? <Alert variant="danger">{mensajeError(catalogos.error)}</Alert> : null}<Form onSubmit={altaExpediente} className="row g-3">
       <Form.Group className="col-md-3"><Form.Label>Área</Form.Label><Form.Select name="area" required>{Object.entries(AREAS).sort(([a], [b]) => a.localeCompare(b)).map(([k,v]) => <option key={k} value={k}>{k} · {v}</option>)}</Form.Select></Form.Group>
       <Form.Group className="col-md-3"><Form.Label>Código</Form.Label><Form.Control name="codigo" required maxLength={40} placeholder="ADM-2026-001"/></Form.Group>
       <Form.Group className="col-md-6"><Form.Label>Título</Form.Label><Form.Control name="titulo" required maxLength={240}/></Form.Group>
       <Form.Group className="col-md-6"><Form.Label>Asunto</Form.Label><Form.Control name="asunto"/></Form.Group>
-      <Form.Group className="col-md-3"><Form.Label>Responsable</Form.Label><Form.Control name="responsable"/></Form.Group>
-      <Form.Group className="col-md-3"><Form.Label>Propietario</Form.Label><Form.Control name="propietario"/></Form.Group>
-      <Form.Group className="col-md-3"><Form.Label>Villa / unidad</Form.Label><Form.Control name="villa"/></Form.Group>
+      <Form.Group className="col-md-3"><Form.Label>Responsable</Form.Label><Form.Select name="responsableId" defaultValue=""><option value="">Seleccione un responsable</option>{(catalogos.data?.responsables ?? []).map((r)=><option key={r.id} value={r.id}>{r.nombre} · {r.roles.join(', ')}</option>)}</Form.Select></Form.Group>
+      <Form.Group className="col-md-3"><Form.Label>Propietario</Form.Label><Form.Select name="propietarioId" value={propietarioId} onChange={(e)=>{const value=e.target.value;setPropietarioId(value);if(unidadId&&value&&!catalogos.data?.unidades.find((u)=>u.id===unidadId)?.propietarios.some((p)=>p.id===value))setUnidadId('');}}><option value="">Seleccione un propietario</option>{propietariosDisponibles.map((p)=><option key={p.id} value={p.id}>{p.nombre}</option>)}</Form.Select></Form.Group>
+      <Form.Group className="col-md-3"><Form.Label>Villa / unidad</Form.Label><Form.Select name="unidadId" value={unidadId} onChange={(e)=>{const value=e.target.value;setUnidadId(value);if(propietarioId&&value&&!catalogos.data?.unidades.find((u)=>u.id===value)?.propietarios.some((p)=>p.id===propietarioId))setPropietarioId('');}}><option value="">Seleccione una unidad</option>{unidadesDisponibles.map((u)=><option key={u.id} value={u.id}>{u.codigo} · {u.tipo}</option>)}</Form.Select></Form.Group>
       <Form.Group className="col-md-3"><Form.Label>Vencimiento</Form.Label><Form.Control name="fechaVencimiento" type="date"/></Form.Group>
       <Form.Group className="col-md-3 d-flex align-items-end"><Form.Check name="vencimientoVerificado" label="Fecha verificada por responsable"/></Form.Group>
       <Form.Group className="col-md-3 d-flex align-items-end"><Form.Check name="confidencial" label="Expediente confidencial"/></Form.Group>
-      <div className="col-12 d-flex justify-content-end"><Button type="submit" disabled={mutation.isPending || !permisos.includes('crear')}>Crear expediente</Button></div>
+      <div className="col-12 d-flex justify-content-end"><Button type="submit" disabled={mutation.isPending || catalogos.isLoading || catalogos.isError || !permisos.includes('crear')}>Crear expediente</Button></div>
     </Form></Card.Body></Card>}
     <Card className="shadow-sm mb-3"><Card.Body className="row g-3 align-items-end">
       <Form.Group className="col-md-7"><Form.Label>Buscar por expediente, documento, radicado, propietario, villa, responsable o texto digital</Form.Label><Form.Control value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Escriba una palabra, código o radicado"/></Form.Group>

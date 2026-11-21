@@ -7,7 +7,7 @@ import { ZodPipe } from '../common/zod.pipe';
 import { DocumentosService } from './documentos.service';
 
 type Archivo = { originalname: string; mimetype: string; size: number; buffer: Buffer };
-const crearExpediente = z.object({ area: z.enum(['01','02','03','04','05','06','07','08','09','10']), codigo: z.string().trim().min(2).max(40), titulo: z.string().trim().min(3).max(240), asunto: z.string().max(2000).optional(), responsable: z.string().max(180).optional(), propietario: z.string().max(180).optional(), villa: z.string().max(80).optional(), confidencial: z.boolean().optional(), fechaVencimiento: z.iso.date().optional(), vencimientoVerificado: z.boolean().optional() }).strict();
+const crearExpediente = z.object({ area: z.enum(['01','02','03','04','05','06','07','08','09','10']), codigo: z.string().trim().min(2).max(40), titulo: z.string().trim().min(3).max(240), asunto: z.string().max(2000).optional(), responsableId: z.uuid().optional(), propietarioId: z.uuid().optional(), unidadId: z.uuid().optional(), confidencial: z.boolean().optional(), fechaVencimiento: z.iso.date().optional(), vencimientoVerificado: z.boolean().optional() }).strict();
 const crearDoc = z.object({ nombre: z.string().trim().min(2).max(240), categoria: z.string().trim().min(2).max(100), radicado: z.string().max(120).optional(), fechaDocumento: z.iso.date().optional() }).strict();
 
 @Controller('documentos')
@@ -16,6 +16,7 @@ export class DocumentosController {
   constructor(private readonly documentos: DocumentosService) {}
 
   @Get() buscar(@Query('buscar') buscar?: string, @Query('area') area?: string) { return this.documentos.buscar(buscar ?? '', area); }
+  @Get('catalogos') catalogos() { return this.documentos.catalogos(); }
   @Get('reportes/consolidado')
   async reporteConsolidado(@Res() res: Response) { const pdf = await this.documentos.reporte(); res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="informe-documental-consolidado.pdf"', 'Cache-Control': 'private, no-store' }); res.send(pdf); }
   @Post('expedientes') crearExpediente(@Body(new ZodPipe(crearExpediente)) dto: z.infer<typeof crearExpediente>) { return this.documentos.crearExpediente(dto); }

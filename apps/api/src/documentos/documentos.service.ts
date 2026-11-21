@@ -16,7 +16,7 @@ import { evaluarPermiso } from '../autorizacion/evaluar-permiso';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Upload = { originalname: string; mimetype: string; size: number; buffer: Buffer };
-type NuevoExpediente = { area: AreaCodigo; codigo: string; titulo: string; asunto?: string; responsable?: string; propietario?: string; villa?: string; confidencial?: boolean; fechaVencimiento?: string; vencimientoVerificado?: boolean };
+type NuevoExpediente = { area: AreaCodigo; codigo: string; titulo: string; asunto?: string; responsableId?: string; propietarioId?: string; unidadId?: string; confidencial?: boolean; fechaVencimiento?: string; vencimientoVerificado?: boolean };
 const STORAGE = resolve(process.env.DOCUMENTOS_STORAGE_PATH ?? '/var/lib/zulu/documentos');
 const execFileAsync = promisify(execFile);
 const ALLOWED: Record<string, string[]> = {
@@ -71,10 +71,46 @@ export class DocumentosService {
     return result;
   }
 
+  async catalogos() {
+    return this.prisma.withTenant(this.condominioId, async (tx) => {
+      const [propietarios, unidades, membresias] = await Promise.all([
+        tx.propietario.findMany({ where: { condominioId: this.condominioId, activo: true }, orderBy: { nombre: 'asc' }, select: { id: true, nombre: true } }),
+        tx.unidadPrivada.findMany({ where: { condominioId: this.condominioId, activa: true }, orderBy: { codigo: 'asc' }, include: { titularidades: { where: { hasta: null, estado: 'VALIDADO', propietario: { activo: true } }, select: { propietario: { select: { id: true, nombre: true } } } } } }),
+        tx.membresia.findMany({ where: { condominioId: this.condominioId, activo: true, usuario: { activo: true } }, orderBy: { createdAt: 'asc' }, select: { rol: true, usuario: { select: { id: true, nombre: true } } } }),
+      ]);
+      const responsables = new Map<string, { id: string; nombre: string; roles: string[] }>();
+      for (const m of membresias) {
+        const actual = responsables.get(m.usuario.id) ?? { ...m.usuario, roles: [] };
+        if (!actual.roles.includes(m.rol)) actual.roles.push(m.rol);
+        responsables.set(m.usuario.id, actual);
+      }
+      return { propietarios, unidades: unidades.map((u) => ({ id: u.id, codigo: u.codigo, tipo: u.tipo, propietarios: u.titularidades.map((t) => t.propietario) })), responsables: [...responsables.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) };
+    });
+  }
+
   async crearExpediente(dto: NuevoExpediente) {
     await this.permiso(dto.area, undefined, 'crear');
     return this.prisma.withTenant(this.condominioId, async (tx) => {
-      const r = await tx.expedienteDigital.create({ data: { ...dto, fechaVencimiento: dto.fechaVencimiento ? new Date(dto.fechaVencimiento) : null, condominioId: this.condominioId, creadoPor: this.usuarioId } });
+      const [propietario, unidad, responsable] = await Promise.all([
+        dto.propietarioId ? tx.propietario.findFirst({ where: { condominioId: this.condominioId, id: dto.propietarioId, activo: true }, select: { id: true, nombre: true } }) : null,
+        dto.unidadId ? tx.unidadPrivada.findFirst({ where: { condominioId: this.condominioId, id: dto.unidadId, activa: true }, select: { id: true, codigo: true } }) : null,
+        dto.responsableId ? tx.membresia.findFirst({ where: { condominioId: this.condominioId, usuarioId: dto.responsableId, activo: true, usuario: { activo: true } }, select: { usuario: { select: { id: true, nombre: true } } } }) : null,
+      ]);
+      if (dto.propietarioId && !propietario) throw new NotFoundException('El propietario no está activo en esta copropiedad.');
+      if (dto.unidadId && !unidad) throw new NotFoundException('La unidad no está activa en esta copropiedad.');
+      if (dto.responsableId && !responsable) throw new NotFoundException('El responsable no tiene membresía activa en esta copropiedad.');
+      if (propietario && unidad) {
+        const titularidad = await tx.titularidad.findFirst({ where: { condominioId: this.condominioId, propietarioId: propietario.id, unidadId: unidad.id, hasta: null, estado: 'VALIDADO' }, select: { id: true } });
+        if (!titularidad) throw new BadRequestException('El propietario seleccionado no tiene titularidad vigente validada para esa unidad.');
+      }
+      const campos = { ...dto };
+      delete campos.responsableId; delete campos.propietarioId; delete campos.unidadId;
+      const r = await tx.expedienteDigital.create({ data: { ...campos, condominioId: this.condominioId, creadoPor: this.usuarioId,
+        propietarioId: propietario?.id ?? null, propietario: propietario?.nombre ?? null,
+        unidadId: unidad?.id ?? null, villa: unidad?.codigo ?? null,
+        responsableId: responsable?.usuario.id ?? null, responsable: responsable?.usuario.nombre ?? null,
+        fechaVencimiento: dto.fechaVencimiento ? new Date(dto.fechaVencimiento) : null,
+      } });
       await this.auditoria.registrar(tx, { accion: 'documentos.expediente.creado', objetoTipo: 'expediente_digital', objetoId: r.id, despues: { area: r.area, codigo: r.codigo } });
       return r;
     });

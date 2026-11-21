@@ -5,6 +5,11 @@ export interface ExpedienteDigital {
   propietario: string | null; villa: string | null; estado: string; confidencial: boolean; fechaVencimiento: string | null; vencimientoVerificado: boolean;
   alerta?: string; _count?: { documentos: number; actuaciones: number; obligaciones: number };
 }
+export interface CatalogosDocumento {
+  propietarios: { id: string; nombre: string }[];
+  unidades: { id: string; codigo: string; tipo: string; propietarios: { id: string; nombre: string }[] }[];
+  responsables: { id: string; nombre: string; roles: string[] }[];
+}
 export interface DetalleDocumento extends ExpedienteDigital {
   documentos: { id: string; nombre: string; categoria: string; radicado: string | null; estado: string; versiones: { id: string; numero: number; nombreArchivo: string; mimeType: string; tamano: number; sha256: string; createdAt: string }[]; relaciones: { id: string; entidadTipo: string; entidadId: string; motivo: string | null }[] }[];
   actuaciones: { id: string; tipo: string; descripcion: string; radicado: string | null; fechaActuacion: string }[];
@@ -13,6 +18,7 @@ export interface DetalleDocumento extends ExpedienteDigital {
 }
 export const documentosApi = {
   buscar: (buscar = '', area = '') => api<ExpedienteDigital[]>(`/documentos?buscar=${encodeURIComponent(buscar)}${area ? `&area=${area}` : ''}`),
+  catalogos: () => api<CatalogosDocumento>('/documentos/catalogos'),
   crearExpediente: (data: Record<string, unknown>) => api('/documentos/expedientes', { metodo: 'POST', cuerpo: data }),
   detalle: (id: string) => api<DetalleDocumento>(`/documentos/expedientes/${id}`),
   exportar: (id: string) => apiArchivo(`/documentos/expedientes/${id}/exportar`),
